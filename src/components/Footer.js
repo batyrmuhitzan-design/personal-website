@@ -2,64 +2,74 @@ import React from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import {
   AiFillGithub,
-  AiOutlineTwitter,
-  AiFillInstagram,
+  AiOutlineMail,
+  AiOutlineWechat,
 } from "react-icons/ai";
-import { FaLinkedinIn } from "react-icons/fa";
+import { SiBilibili, SiJuejin } from "react-icons/si";
+import profile from "../portfolio.config";
 
 function Footer() {
-  let date = new Date();
-  let year = date.getFullYear();
+  const year = new Date().getFullYear();
+
   return (
     <Container fluid className="footer">
       <Row>
         <Col md="4" className="footer-copywright">
-          <h3>Designed and Developed by Soumyajit Behera</h3>
+          <h3>Designed &amp; Developed by {profile.nameEn}</h3>
         </Col>
         <Col md="4" className="footer-copywright">
-          <h3>Copyright © {year} SB</h3>
+          <h3>
+            © {year} {profile.name} · {profile.nameEn}
+          </h3>
         </Col>
         <Col md="4" className="footer-body">
           <ul className="footer-icons">
             <li className="social-icons">
               <a
-                href="https://github.com/soumyajit4419"
+                href={profile.github}
                 style={{ color: "white" }}
-                target="_blank" 
+                target="_blank"
                 rel="noopener noreferrer"
+                aria-label="GitHub"
               >
                 <AiFillGithub />
               </a>
             </li>
             <li className="social-icons">
               <a
-                href="https://twitter.com/Soumyajit4419"
+                href={`mailto:${profile.email}`}
                 style={{ color: "white" }}
-                target="_blank" 
-                rel="noopener noreferrer"
+                aria-label="邮箱"
               >
-                <AiOutlineTwitter />
+                <AiOutlineMail />
               </a>
             </li>
             <li className="social-icons">
               <a
-                href="https://www.linkedin.com/in/soumyajit4419/"
+                href={profile.bilibili}
                 style={{ color: "white" }}
-                target="_blank" 
+                target="_blank"
                 rel="noopener noreferrer"
+                aria-label="哔哩哔哩"
               >
-                <FaLinkedinIn />
+                <SiBilibili />
               </a>
             </li>
             <li className="social-icons">
               <a
-                href="https://www.instagram.com/soumyajit4419"
+                href={profile.juejin}
                 style={{ color: "white" }}
-                target="_blank" 
+                target="_blank"
                 rel="noopener noreferrer"
+                aria-label="掘金"
               >
-                <AiFillInstagram />
+                <SiJuejin />
               </a>
+            </li>
+            <li className="social-icons">
+              <span style={{ color: "white" }} title="微信：见联系页">
+                <AiOutlineWechat />
+              </span>
             </li>
           </ul>
         </Col>

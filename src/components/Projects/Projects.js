@@ -2,12 +2,14 @@ import React from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import ProjectCard from "./ProjectCards";
 import Particle from "../Particle";
-import leaf from "../../Assets/Projects/leaf.png";
-import emotion from "../../Assets/Projects/emotion.png";
-import editor from "../../Assets/Projects/codeEditor.png";
-import chatify from "../../Assets/Projects/chatify.png";
-import suicide from "../../Assets/Projects/suicide.png";
-import bitsOfCode from "../../Assets/Projects/blog.png";
+import profile from "../../portfolio.config";
+
+import automationHub from "../../Assets/Projects/automation-hub.svg";
+import novaAdmin from "../../Assets/Projects/nova-admin.svg";
+import pipeFlow from "../../Assets/Projects/pipe-flow.svg";
+import devopsToolkit from "../../Assets/Projects/devops-toolkit.svg";
+import quantLab from "../../Assets/Projects/quant-lab.svg";
+import markFlow from "../../Assets/Projects/mark-flow.svg";
 
 function Projects() {
   return (
@@ -15,76 +17,70 @@ function Projects() {
       <Particle />
       <Container>
         <h1 className="project-heading">
-          My Recent <strong className="purple">Works </strong>
+          我最近做的<strong className="purple">项目 </strong>
         </h1>
-        <p style={{ color: "white" }}>
-          Here are a few projects I've worked on recently.
+        <p className="project-subtitle">
+          以下是我近期参与的 Web 全栈与自动化方向的作品，
+          点击卡片右下角可查看代码仓库。
         </p>
         <Row style={{ justifyContent: "center", paddingBottom: "10px" }}>
           <Col md={4} className="project-card">
             <ProjectCard
-              imgPath={chatify}
+              imgPath={automationHub}
               isBlog={false}
-              title="Chatify"
-              description="Personal Chat Room or Workspace to share resources and hangout with friends build with react.js, Material-UI, and Firebase. Have features which allows user for realtime messaging, image sharing as well as supports reactions on messages."
-              ghLink="https://github.com/soumyajit4419/Chatify"
-              demoLink="https://chatify-49.web.app/"
+              title="Automation Hub · 自动化调度中心"
+              description="统一管理定时任务、爬虫与数据处理流水线的调度平台。支持可视化配置任务周期、执行日志查询、失败自动重试与消息通知，把散落各处的脚本收拢到一个控制台。"
+              ghLink={`${profile.github}/automation-hub`}
             />
           </Col>
 
           <Col md={4} className="project-card">
             <ProjectCard
-              imgPath={bitsOfCode}
+              imgPath={novaAdmin}
               isBlog={false}
-              title="Bits-0f-C0de"
-              description="My personal blog page build with Next.js and Tailwind Css which takes the content from makdown files and renders it using Next.js. Supports dark mode and easy to write blogs using markdown."
-              ghLink="https://github.com/soumyajit4419/Bits-0f-C0de"
-              demoLink="https://blogs.soumya-jit.tech/"
+              title="Nova Admin · 全栈管理后台"
+              description="面向中小团队的后台管理系统，内置 RBAC 权限、数据看板与操作审计日志。前端 React + TypeScript，后端 FastAPI + PostgreSQL，前后端分离，一条命令容器化部署。"
+              ghLink={`${profile.github}/nova-admin`}
             />
           </Col>
 
           <Col md={4} className="project-card">
             <ProjectCard
-              imgPath={editor}
+              imgPath={pipeFlow}
               isBlog={false}
-              title="Editor.io"
-              description="Online code and markdown editor build with react.js. Online Editor which supports html, css, and js code with instant view of website. Online markdown editor for building README file which supports GFM, Custom Html tags with toolbar and instant preview.Both the editor supports auto save of work using Local Storage"
-              ghLink="https://github.com/soumyajit4419/Editor.io"
-              demoLink="https://editor.soumya-jit.tech/"              
+              title="PipeFlow · 数据采集清洗管道"
+              description="面向多站点的数据采集与清洗流水线：支持断点续采、增量去重入库、字段标准化输出，异常自动告警，最终产出可直接用于分析与建模的数据集。"
+              ghLink={`${profile.github}/pipe-flow`}
             />
           </Col>
 
           <Col md={4} className="project-card">
             <ProjectCard
-              imgPath={leaf}
+              imgPath={devopsToolkit}
               isBlog={false}
-              title="Plant AI"
-              description="Used the plant disease dataset from Kaggle and trained a image classifer model using 'PyTorch' framework using CNN and Transfer Learning with 38 classes of various plant leaves. The model was successfully able to detect diseased and healthy leaves of 14 unique plants. I was able to achieve an accuracy of 98% by using Resnet34 pretrained model."
-              ghLink="https://github.com/soumyajit4419/Plant_AI"
-              demoLink="https://plant49-ai.herokuapp.com/"
+              title="DevOps Toolkit · 一键部署工具箱"
+              description="把「构建 → 打镜像 → 上传 → 发布 → 回滚」整套流程封装成可复用脚本，配合 Nginx 反向代理、HTTPS 证书自动续期与健康检查，一条命令完成服务上线。"
+              ghLink={`${profile.github}/devops-toolkit`}
             />
           </Col>
 
           <Col md={4} className="project-card">
             <ProjectCard
-              imgPath={suicide}
+              imgPath={quantLab}
               isBlog={false}
-              title="Ai For Social Good"
-              description="Using 'Natural Launguage Processing' for the detection of suicide-related posts and user's suicide ideation in cyberspace  and thus helping in sucide prevention."
-              ghLink="https://github.com/soumyajit4419/AI_For_Social_Good"
-              // demoLink="https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley" <--------Please include a demo link here
+              title="Quant Lab · 策略回测引擎"
+              description="以 C++ 实现核心撮合与回测内核，保证大数据量下的计算性能；Python 负责策略编写、参数寻优与结果可视化，兼顾速度与开发效率。"
+              ghLink={`${profile.github}/quant-lab`}
             />
           </Col>
 
           <Col md={4} className="project-card">
             <ProjectCard
-              imgPath={emotion}
+              imgPath={markFlow}
               isBlog={false}
-              title="Face Recognition and Emotion Detection"
-              description="Trained a CNN classifier using 'FER-2013 dataset' with Keras and tensorflow backened. The classifier sucessfully predicted the various types of emotions of human. And the highest accuracy obtained with the model was 60.1%.
-              Then used Open-CV to detect the face in an image and then pass the face to the classifer to predict the emotion of a person."
-              ghLink="https://github.com/soumyajit4419/Face_And_Emotion_Detection"
-              // demoLink="https://blogs.soumya-jit.tech/"      <--------Please include a demo link here 
+              title="MarkFlow · 内容发布流水线"
+              description="一次写作、多平台分发的自动化流水线：Markdown 自动排版、图片压缩上传、定时发布与死链校验，让内容更新从手工操作变成后台任务。"
+              ghLink={`${profile.github}/mark-flow`}
             />
           </Col>
         </Row>

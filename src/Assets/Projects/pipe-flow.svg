@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450"
+  role="img" aria-label="PipeFlow 数据采集清洗管道">
+  <defs>
+    <linearGradient id="pfBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1f26" />
+      <stop offset="100%" stop-color="#0a0718" />
+    </linearGradient>
+    <linearGradient id="pfAc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7ddb7a" />
+      <stop offset="100%" stop-color="#2f8f6a" />
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#pfBg)" />
+  <circle cx="700" cy="80" r="170" fill="#5fa04e" opacity="0.14" />
+  <circle cx="90" cy="410" r="140" fill="#2496ed" opacity="0.12" />
+  <g stroke="#ffffff" stroke-opacity="0.045" stroke-width="1">
+    <path d="M100 0V450M200 0V450M300 0V450M400 0V450M500 0V450M600 0V450M700 0V450" />
+    <path d="M0 90H800M0 180H800M0 270H800M0 360H800" />
+  </g>
+
+  <rect x="48" y="40" width="302" height="34" rx="17" fill="url(#pfAc)" />
+  <text x="68" y="63" font-family="'PT Mono', Consolas, monospace" font-size="17"
+    font-weight="600" fill="#08180f">PYTHON · PLAYWRIGHT · POSTGRESQL</text>
+
+  <!-- 管道节点 -->
+  <g font-family="'PT Mono', Consolas, monospace" font-size="16" text-anchor="middle">
+    <rect x="48" y="128" width="150" height="72" rx="14" fill="#0c1a1f" stroke="#5fa04e"
+      stroke-opacity="0.7" />
+    <text x="123" y="160" fill="#ffffff">Source</text>
+    <text x="123" y="184" fill="#7f96a0" font-size="13">抓取 / 接口</text>
+
+    <rect x="246" y="128" width="150" height="72" rx="14" fill="#0c1a1f" stroke="#2496ed"
+      stroke-opacity="0.7" />
+    <text x="321" y="160" fill="#ffffff">Transform</text>
+    <text x="321" y="184" fill="#7f96a0" font-size="13">清洗 / 标准化</text>
+
+    <rect x="444" y="128" width="150" height="72" rx="14" fill="#0c1a1f" stroke="#c770f0"
+      stroke-opacity="0.7" />
+    <text x="519" y="160" fill="#ffffff">Sink</text>
+    <text x="519" y="184" fill="#7f96a0" font-size="13">入库 / 导出</text>
+  </g>
+
+  <!-- 连接管道 -->
+  <path d="M198 164H246" stroke="#5fa04e" stroke-width="4" stroke-linecap="round"
+    stroke-dasharray="10 8" opacity="0.85" />
+  <path d="M396 164H444" stroke="#2496ed" stroke-width="4" stroke-linecap="round"
+    stroke-dasharray="10 8" opacity="0.85" />
+  <circle cx="216" cy="164" r="7" fill="#7ddb7a" />
+  <circle cx="416" cy="164" r="7" fill="#61dafb" />
+
+  <!-- 数据表 -->
+  <rect x="48" y="234" width="546" height="94" rx="14" fill="#0b161b" stroke="#5fa04e"
+    stroke-opacity="0.4" />
+  <g fill="#ffffff">
+    <rect x="70" y="252" width="500" height="10" rx="5" opacity="0.22" />
+    <rect x="70" y="276" width="440" height="10" rx="5" opacity="0.14" />
+    <rect x="70" y="300" width="470" height="10" rx="5" opacity="0.14" />
+  </g>
+  <g fill="#7ddb7a" opacity="0.85">
+    <rect x="70" y="252" width="96" height="10" rx="5" />
+    <rect x="70" y="276" width="72" height="10" rx="5" opacity="0.7" />
+    <rect x="70" y="300" width="84" height="10" rx="5" opacity="0.6" />
+  </g>
+  <text x="70" y="336" font-family="'PT Mono', Consolas, monospace" font-size="15"
+    fill="#5fa04e" opacity="0.9">1,204,880 rows · 增量去重 · 断点续采</text>
+
+  <!-- 状态环 -->
+  <circle cx="672" cy="164" r="52" fill="none" stroke="#5fa04e" stroke-opacity="0.35"
+    stroke-width="8" />
+  <circle cx="672" cy="164" r="52" fill="none" stroke="#7ddb7a" stroke-width="8"
+    stroke-linecap="round" stroke-dasharray="250 330" transform="rotate(-90 672 164)" />
+  <text x="672" y="172" text-anchor="middle" font-family="'PT Mono', Consolas, monospace"
+    font-size="24" font-weight="700" fill="#ffffff">76%</text>
+
+  <text x="48" y="372" font-family="'PT Mono', Consolas, monospace" font-size="42"
+    font-weight="700" fill="#ffffff">PipeFlow</text>
+  <text x="48" y="410" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="22"
+    fill="#7ddb7a">数据采集清洗管道 · 稳定产出可用数据集</text>
+</svg>

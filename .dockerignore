@@ -1,0 +1,18 @@
+# 依赖与构建产物（容器内会重新安装、重新构建）
+node_modules
+build
+
+# 版本控制与编辑器
+.git
+.gitignore
+.vscode
+.idea
+*.log
+
+# 与镜像无关的文档与本地文件
+README.md
+*.md
+Dockerfile
+docker-compose.yml
+.dockerignore
+.env

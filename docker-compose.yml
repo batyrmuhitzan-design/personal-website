@@ -1,0 +1,37 @@
+# ==========================================================================
+#  莎莎 · 个人主页 —— docker-compose 部署文件
+#  用法（在项目根目录执行）：
+#    docker compose up -d --build      # 构建并后台启动
+#    docker compose logs -f            # 查看日志
+#    docker compose down               # 停止并移除容器
+#  访问：http://<服务器IP>:8881
+#  1Panel 部署：本文件可直接被 1Panel「容器 - 编排」导入使用
+# ==========================================================================
+
+services:
+  personal-website:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: personal-website:latest
+    container_name: personal-website
+    restart: always
+    ports:
+      # 宿主 8881 -> 容器 80，避免与其他服务抢占 80 端口
+      - "8881:80"
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=C.UTF-8
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # 若需被 1Panel 反向代理按容器名访问，取消下面两行注释即可
+    # networks:
+    #   - 1panel-network
+
+# networks:
+#   1panel-network:
+#     external: true

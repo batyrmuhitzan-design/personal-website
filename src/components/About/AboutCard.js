@@ -7,38 +7,40 @@ function AboutCard() {
     <Card className="quote-card-view">
       <Card.Body>
         <blockquote className="blockquote mb-0">
-          <p style={{ textAlign: "justify" }}>
-            Hi everyone! I’m <span className="purple">Soumyajit Behera</span>{" "}
-            from <span className="purple">Bhubaneswar, India</span>.
-            <br />
-            I’m currently working as a{" "}
-            <span className="purple">Software Developer</span> at{" "}
-            <span className="purple">Juspay</span>.
-            <br />I hold an Integrated M.Sc. (IMSc) in{" "}
-            <span className="purple">Mathematics and Computing</span> from{" "}
-            <span className="purple">BIT Mesra</span>.
+          <p className="zh-text" style={{ textAlign: "justify" }}>
+            大家好，我是 <span className="purple">莎莎（Shasha）</span>，
+            来自 <span className="purple">中国</span>，一名专注
+            <span className="purple"> Web 全栈开发 </span>与
+            <span className="purple"> 自动化编程 </span>的开发者。
             <br />
             <br />
-            Outside of coding, I love engaging in activities that keep me
-            creative and inspired:
+            平时主要写 <span className="purple">React + TypeScript</span>{" "}
+            做前端，用 <span className="purple">FastAPI / Python</span>{" "}
+            写后端与自动化脚本，数据库常用
+            <span className="purple"> PostgreSQL</span>，
+            交付则习惯用 <span className="purple">Docker + Nginx</span>{" "}
+            打包部署，也做过 <span className="purple">C++</span> 方向的性能相关开发。
+            <br />
+            <br />
+            除了写代码，我也喜欢：
           </p>
 
           <ul>
             <li className="about-activity">
-              <ImPointRight /> Playing Games 🎮
+              <ImPointRight /> 把重复流程改造成自动化脚本 🤖
             </li>
             <li className="about-activity">
-              <ImPointRight /> Writing Tech Blogs ✍️
+              <ImPointRight /> 折腾服务器、容器与家庭 NAS 🖥️
             </li>
             <li className="about-activity">
-              <ImPointRight /> Traveling and Exploring New Places 🌍
+              <ImPointRight /> 写文档、录教程，沉淀踩过的坑 📚
             </li>
           </ul>
 
-          <p style={{ color: "rgb(155 126 172)" }}>
-            "Strive to build things that make a difference!"{" "}
+          <p className="zh-text" style={{ color: "rgb(155 126 172)" }}>
+            「把重复的事情交给代码，把时间留给创造。」
           </p>
-          <footer className="blockquote-footer">Soumyajit</footer>
+          <footer className="blockquote-footer">莎莎 · Shasha</footer>
         </blockquote>
       </Card.Body>
     </Card>

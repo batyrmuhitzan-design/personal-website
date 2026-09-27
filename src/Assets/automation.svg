@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 462" width="520" height="462"
+  role="img" aria-labelledby="autoTitle">
+  <title id="autoTitle">Web 前端、FastAPI 后端、任务队列与数据库组成的自动化流水线</title>
+  <defs>
+    <linearGradient id="autoBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1c1330" />
+      <stop offset="100%" stop-color="#0f0a1d" />
+    </linearGradient>
+    <radialGradient id="autoGlow" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#c770f0" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#c770f0" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <circle cx="260" cy="230" r="220" fill="url(#autoGlow)" />
+
+  <!-- 流程节点 -->
+  <g font-family="'PT Mono', Consolas, monospace" font-size="15" text-anchor="middle">
+    <rect x="30" y="34" width="112" height="66" rx="14" fill="url(#autoBg)" stroke="#c770f0"
+      stroke-opacity="0.6" />
+    <text x="86" y="62" fill="#ffffff">Trigger</text>
+    <text x="86" y="84" fill="#9d8ab8" font-size="12">定时 / 事件</text>
+
+    <rect x="196" y="34" width="112" height="66" rx="14" fill="url(#autoBg)" stroke="#61dafb"
+      stroke-opacity="0.6" />
+    <text x="252" y="62" fill="#ffffff">FastAPI</text>
+    <text x="252" y="84" fill="#9d8ab8" font-size="12">接口 / 逻辑</text>
+
+    <rect x="362" y="34" width="112" height="66" rx="14" fill="url(#autoBg)" stroke="#5fa04e"
+      stroke-opacity="0.6" />
+    <text x="418" y="62" fill="#ffffff">Worker</text>
+    <text x="418" y="84" fill="#9d8ab8" font-size="12">队列 / 任务</text>
+  </g>
+
+  <!-- 连接箭头 -->
+  <g stroke="#c770f0" stroke-width="2.5" fill="none" opacity="0.8">
+    <path d="M146 67H188" />
+    <path d="M312 67H354" />
+  </g>
+  <g fill="#c770f0" opacity="0.9">
+    <path d="M188 67l-8-5v10z" />
+    <path d="M354 67l-8-5v10z" />
+  </g>
+
+  <!-- 前端界面 -->
+  <rect x="30" y="140" width="250" height="176" rx="14" fill="url(#autoBg)" stroke="#c770f0"
+    stroke-opacity="0.45" />
+  <rect x="30" y="140" width="250" height="30" rx="14" fill="#ffffff" fill-opacity="0.06" />
+  <circle cx="50" cy="155" r="4" fill="#ff5f57" />
+  <circle cx="64" cy="155" r="4" fill="#febc2e" />
+  <circle cx="78" cy="155" r="4" fill="#28c840" />
+  <rect x="44" y="184" width="52" height="118" rx="8" fill="#ffffff" fill-opacity="0.05" />
+  <g fill="#c770f0" opacity="0.6">
+    <rect x="54" y="196" width="32" height="7" rx="3.5" />
+    <rect x="54" y="212" width="32" height="7" rx="3.5" opacity="0.6" />
+    <rect x="54" y="228" width="32" height="7" rx="3.5" opacity="0.4" />
+  </g>
+  <g fill="#ffffff" opacity="0.22">
+    <rect x="110" y="184" width="156" height="24" rx="8" />
+    <rect x="110" y="218" width="72" height="42" rx="8" />
+    <rect x="194" y="218" width="72" height="42" rx="8" opacity="0.7" />
+  </g>
+  <rect x="110" y="272" width="156" height="9" rx="4.5" fill="#61dafb" opacity="0.65" />
+  <rect x="110" y="288" width="104" height="9" rx="4.5" fill="#61dafb" opacity="0.45" />
+
+  <!-- 数据库 -->
+  <g>
+    <rect x="330" y="146" width="150" height="96" fill="#1b1330" stroke="#61dafb"
+      stroke-opacity="0.65" />
+    <ellipse cx="405" cy="146" rx="75" ry="20" fill="#241840" stroke="#61dafb"
+      stroke-opacity="0.65" />
+    <ellipse cx="405" cy="178" rx="75" ry="20" fill="none" stroke="#61dafb" stroke-opacity="0.35" />
+    <ellipse cx="405" cy="210" rx="75" ry="20" fill="none" stroke="#61dafb" stroke-opacity="0.35" />
+    <rect x="330" y="226" width="150" height="16" fill="#1b1330" />
+    <ellipse cx="405" cy="242" rx="75" ry="20" fill="#1b1330" stroke="#61dafb"
+      stroke-opacity="0.65" />
+  </g>
+
+  <!-- 齿轮 -->
+  <g>
+    <g fill="#6f42c1" opacity="0.9">
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(0 453 326)" />
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(45 453 326)" />
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(90 453 326)" />
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(135 453 326)" />
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(180 453 326)" />
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(225 453 326)" />
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(270 453 326)" />
+      <rect x="446" y="292" width="14" height="22" rx="4" transform="rotate(315 453 326)" />
+    </g>
+    <circle cx="453" cy="326" r="30" fill="#1b1330" stroke="#c770f0" stroke-opacity="0.8" />
+    <circle cx="453" cy="326" r="11" fill="#c770f0" opacity="0.7" />
+  </g>
+
+  <!-- 部署产线 -->
+  <g font-family="'PT Mono', Consolas, monospace" font-size="15" text-anchor="middle">
+    <rect x="30" y="356" width="126" height="38" rx="19" fill="#ffffff" fill-opacity="0.07"
+      stroke="#c770f0" stroke-opacity="0.55" />
+    <text x="93" y="381" fill="#e6dcf7">React</text>
+    <rect x="170" y="356" width="126" height="38" rx="19" fill="#ffffff" fill-opacity="0.07"
+      stroke="#c770f0" stroke-opacity="0.55" />
+    <text x="233" y="381" fill="#e6dcf7">FastAPI</text>
+    <rect x="310" y="356" width="126" height="38" rx="19" fill="#ffffff" fill-opacity="0.07"
+      stroke="#c770f0" stroke-opacity="0.55" />
+    <text x="373" y="381" fill="#e6dcf7">Docker</text>
+  </g>
+
+  <text x="30" y="425" font-family="'PT Mono', Consolas, monospace" font-size="14"
+    fill="#9d8ab8">build → ship → deploy · 一次配置，长期自动运行</text>
+  <text x="30" y="450" font-family="'PT Mono', Consolas, monospace" font-size="13"
+    fill="#c770f0" opacity="0.85">自动化 · 容器化 · 持续交付</text>
+</svg>

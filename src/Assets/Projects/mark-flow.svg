@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450"
+  role="img" aria-label="MarkFlow 内容发布流水线">
+  <defs>
+    <linearGradient id="mfBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1c1330" />
+      <stop offset="100%" stop-color="#0a0718" />
+    </linearGradient>
+    <linearGradient id="mfAc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d18bf5" />
+      <stop offset="100%" stop-color="#c770f0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#mfBg)" />
+  <circle cx="700" cy="80" r="175" fill="#c770f0" opacity="0.14" />
+  <circle cx="80" cy="410" r="140" fill="#f0a45c" opacity="0.12" />
+  <g stroke="#ffffff" stroke-opacity="0.045" stroke-width="1">
+    <path d="M100 0V450M200 0V450M300 0V450M400 0V450M500 0V450M600 0V450M700 0V450" />
+    <path d="M0 90H800M0 180H800M0 270H800M0 360H800" />
+  </g>
+
+  <rect x="48" y="40" width="286" height="34" rx="17" fill="url(#mfAc)" />
+  <text x="68" y="63" font-family="'PT Mono', Consolas, monospace" font-size="17"
+    font-weight="600" fill="#180a22">FASTAPI · PLAYWRIGHT · CRON</text>
+
+  <!-- Markdown 文档 -->
+  <rect x="48" y="112" width="244" height="196" rx="14" fill="#120d20" stroke="#c770f0"
+    stroke-opacity="0.5" />
+  <rect x="48" y="112" width="244" height="30" rx="14" fill="#ffffff" fill-opacity="0.06" />
+  <text x="68" y="133" font-family="'PT Mono', Consolas, monospace" font-size="14"
+    fill="#9d8ab8">post.md</text>
+  <g>
+    <rect x="70" y="160" width="150" height="14" rx="7" fill="#c770f0" opacity="0.85" />
+    <rect x="70" y="188" width="196" height="9" rx="4.5" fill="#ffffff" opacity="0.22" />
+    <rect x="70" y="208" width="176" height="9" rx="4.5" fill="#ffffff" opacity="0.18" />
+    <rect x="70" y="228" width="188" height="9" rx="4.5" fill="#ffffff" opacity="0.18" />
+    <rect x="70" y="252" width="120" height="9" rx="4.5" fill="#61dafb" opacity="0.6" />
+    <rect x="70" y="274" width="164" height="9" rx="4.5" fill="#ffffff" opacity="0.18" />
+  </g>
+
+  <!-- 箭头 -->
+  <path d="M300 208H372" stroke="#c770f0" stroke-width="4" stroke-linecap="round"
+    stroke-dasharray="10 8" />
+  <path d="M372 208l-12-7v14z" fill="#c770f0" />
+
+  <!-- 发布目标 -->
+  <g font-family="'PT Mono', Consolas, monospace" font-size="15">
+    <rect x="392" y="128" width="360" height="56" rx="14" fill="#120d20" stroke="#c770f0"
+      stroke-opacity="0.45" />
+    <circle cx="422" cy="156" r="10" fill="#c770f0" opacity="0.8" />
+    <text x="446" y="162" fill="#ffffff">blog · 自动排版</text>
+    <text x="712" y="162" text-anchor="end" fill="#7ddb7a">done</text>
+
+    <rect x="392" y="196" width="360" height="56" rx="14" fill="#120d20" stroke="#c770f0"
+      stroke-opacity="0.45" />
+    <circle cx="422" cy="224" r="10" fill="#61dafb" opacity="0.8" />
+    <text x="446" y="230" fill="#ffffff">wechat · 图片压缩</text>
+    <text x="712" y="230" text-anchor="end" fill="#7ddb7a">done</text>
+
+    <rect x="392" y="264" width="360" height="56" rx="14" fill="#120d20" stroke="#f0a45c"
+      stroke-opacity="0.5" />
+    <circle cx="422" cy="292" r="10" fill="#f0a45c" opacity="0.85" />
+    <text x="446" y="298" fill="#ffffff">juejin · 定时 09:00</text>
+    <text x="712" y="298" text-anchor="end" fill="#f0a45c">queued</text>
+  </g>
+
+  <text x="48" y="372" font-family="'PT Mono', Consolas, monospace" font-size="42"
+    font-weight="700" fill="#ffffff">MarkFlow</text>
+  <text x="48" y="410" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="22"
+    fill="#d18bf5">内容发布流水线 · 一次写作，多平台分发</text>
+</svg>

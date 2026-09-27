@@ -1,11 +1,22 @@
-/* @import url('https://fonts.googleapis.com/css2?family=Outfit&display=swap'); */
-
-@import url("https://fonts.googleapis.com/css2?family=Outfit&family=PT+Mono&display=swap");
+/* 字体：拉丁字符走 Outfit / PT Mono，中文自动回退到系统中文黑体，保证中英混排观感一致 */
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=PT+Mono&display=swap");
 
 body {
   margin: 0;
-  font-family: "PT Mono", monospace !important;
+  font-family: "PT Mono", "Outfit", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", monospace !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0713;
   background-image: linear-gradient(to left, rgb(27 20 41), rgb(20 15 35));
+  color: #ece7f7;
+}
+
+code {
+  font-family: "PT Mono", monospace;
+}
+
+::selection {
+  background: #c770f0;
+  color: #150a20;
 }

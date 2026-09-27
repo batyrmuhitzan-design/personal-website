@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450"
+  role="img" aria-label="Automation Hub 自动化调度中心">
+  <defs>
+    <linearGradient id="ahBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1c1330" />
+      <stop offset="100%" stop-color="#0c0718" />
+    </linearGradient>
+    <linearGradient id="ahAc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d18bf5" />
+      <stop offset="100%" stop-color="#8a49a8" />
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="450" fill="url(#ahBg)" />
+  <circle cx="700" cy="70" r="170" fill="#c770f0" opacity="0.12" />
+  <circle cx="90" cy="410" r="130" fill="#6f42c1" opacity="0.14" />
+  <g stroke="#ffffff" stroke-opacity="0.045" stroke-width="1">
+    <path d="M100 0V450M200 0V450M300 0V450M400 0V450M500 0V450M600 0V450M700 0V450" />
+    <path d="M0 90H800M0 180H800M0 270H800M0 360H800" />
+  </g>
+
+  <rect x="48" y="40" width="266" height="34" rx="17" fill="url(#ahAc)" />
+  <text x="68" y="63" font-family="'PT Mono', Consolas, monospace" font-size="17"
+    font-weight="600" fill="#150a20">PYTHON · FASTAPI · REDIS</text>
+
+  <!-- 任务看板 -->
+  <rect x="48" y="102" width="300" height="176" rx="16" fill="none" stroke="#c770f0"
+    stroke-opacity="0.5" />
+  <g fill="#c770f0">
+    <rect x="70" y="126" width="58" height="34" rx="8" opacity="0.85" />
+    <rect x="140" y="126" width="58" height="34" rx="8" opacity="0.35" />
+    <rect x="210" y="126" width="58" height="34" rx="8" opacity="0.6" />
+    <rect x="280" y="126" width="46" height="34" rx="8" opacity="0.25" />
+    <rect x="70" y="174" width="58" height="34" rx="8" opacity="0.3" />
+    <rect x="140" y="174" width="58" height="34" rx="8" opacity="0.7" />
+    <rect x="210" y="174" width="58" height="34" rx="8" opacity="0.4" />
+    <rect x="280" y="174" width="46" height="34" rx="8" opacity="0.8" />
+    <rect x="70" y="222" width="58" height="34" rx="8" opacity="0.55" />
+    <rect x="140" y="222" width="58" height="34" rx="8" opacity="0.2" />
+    <rect x="210" y="222" width="58" height="34" rx="8" opacity="0.9" />
+    <rect x="280" y="222" width="46" height="34" rx="8" opacity="0.35" />
+  </g>
+
+  <!-- 时钟 -->
+  <circle cx="452" cy="176" r="62" fill="#ffffff" fill-opacity="0.04" stroke="#61dafb"
+    stroke-opacity="0.6" />
+  <circle cx="452" cy="176" r="5" fill="#61dafb" />
+  <path d="M452 140V180L482 198" stroke="#61dafb" stroke-width="5" stroke-linecap="round"
+    fill="none" />
+  <path d="M512 118A84 84 0 0 1 512 234" stroke="#c770f0" stroke-opacity="0.5" stroke-width="3"
+    fill="none" />
+
+  <!-- 执行日志 -->
+  <rect x="330" y="262" width="420" height="60" rx="14" fill="#0b0716" stroke="#5fa04e"
+    stroke-opacity="0.55" />
+  <text x="352" y="300" font-family="'PT Mono', Consolas, monospace" font-size="16"
+    fill="#5fa04e">✔ task #127 已完成 · 失败自动重试 · 日志留痕</text>
+
+  <text x="48" y="358" font-family="'PT Mono', Consolas, monospace" font-size="42"
+    font-weight="700" fill="#ffffff">Automation Hub</text>
+  <text x="48" y="398" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="22"
+    fill="#c770f0">自动化调度中心 · 定时任务与流水线管理</text>
+</svg>

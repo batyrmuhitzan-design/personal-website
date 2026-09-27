@@ -262,7 +262,7 @@ button:focus {
 .home-section {
   position: relative;
   z-index: -1;
-  /* background-image: var(--image-gradient), url(./Assets/home-bg.jpg); */
+  /* 首页背景：如需自定义大图，把图片放进 src/Assets/ 后取消下面这行注释并改路径 */
   background-position: top center;
   background-repeat: no-repeat;
   padding-bottom: 30px !important;
@@ -758,4 +758,227 @@ button:focus {
 }
 .fork-btn-inner::after {
   display: none !important;
+}
+
+/* ================================================================ */
+/*  莎莎 · 二改定制样式                                                */
+/*  说明：统一追加在文件末尾，方便与上游模板代码区分、也方便覆盖原值   */
+/* ================================================================ */
+
+/* ---------- 顶部 Logo（换成文字标识后需要自适应宽度） ---------- */
+.logo {
+  width: auto !important;
+  height: 2.4em !important;
+  max-width: 240px;
+}
+
+/* ---------- Hero 打字机与插图 ---------- */
+.typewriter-box {
+  padding: 46px 0 0 0;
+  text-align: left;
+}
+
+.home-tagline {
+  margin-top: 20px;
+  font-size: 1em;
+  line-height: 1.9;
+  color: rgba(233, 228, 245, 0.75);
+  letter-spacing: 0.5px;
+}
+
+.hero-illustration-col {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px 70px;
+}
+
+.hero-illustration {
+  width: 100%;
+  max-width: 480px;
+  filter: drop-shadow(0 18px 40px rgba(140, 76, 220, 0.35));
+}
+
+/* ---------- 联系方式区块 ---------- */
+.contact-section {
+  position: relative !important;
+  padding-top: 70px !important;
+  padding-bottom: 80px !important;
+  background-image: var(--section-background-color) !important;
+  color: white !important;
+}
+
+.contact-page {
+  padding-top: 150px !important;
+}
+
+.contact-subtitle {
+  max-width: 760px;
+  margin: 0 auto 10px;
+  line-height: 1.9;
+  color: rgba(233, 228, 245, 0.78);
+}
+
+.contact-cards {
+  margin-top: 40px;
+}
+
+.contact-col {
+  margin-bottom: 30px;
+}
+
+.contact-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 24px;
+  border-radius: 18px;
+  background: rgba(30, 18, 48, 0.55);
+  border: 1px solid rgba(200, 137, 230, 0.35);
+  box-shadow: 0 10px 26px rgba(89, 4, 168, 0.16);
+  transition: transform 0.35s ease, box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(199, 112, 240, 0.85);
+  box-shadow: 0 16px 34px rgba(140, 76, 220, 0.32);
+}
+
+.contact-icon {
+  font-size: 2.2em;
+  margin-bottom: 12px;
+  color: var(--imp-text-color);
+}
+
+.contact-card h3 {
+  font-size: 1.15em;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.contact-value {
+  margin-bottom: 18px;
+  font-size: 0.98em;
+  line-height: 1.8;
+  word-break: break-all;
+  color: rgba(233, 228, 245, 0.86);
+}
+
+.contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 0.92em;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 137, 230, 0.6);
+  background: rgba(147, 76, 206, 0.28);
+  color: #f2ecfb;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.contact-btn:hover {
+  background: rgba(162, 77, 211, 0.6);
+  border-color: var(--imp-text-color);
+  color: #fff;
+}
+
+/* ---------- 技术栈图标（react-icons 版本） ---------- */
+.tech-grid .tech-icons {
+  flex-direction: column !important;
+}
+
+.tech-grid .tech-icons svg {
+  font-size: 1.9rem;
+}
+
+.tech-grid .tech-icons .tech-icons-text {
+  margin-left: 0;
+  margin-top: 8px;
+  font-size: 0.75em;
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+  word-break: keep-all;
+}
+
+.tech-grid .tech-icons:hover svg {
+  filter: drop-shadow(0 0 8px rgba(199, 112, 240, 0.85));
+}
+
+/* ---------- 关于页插图 / 头像 ---------- */
+.about-img img {
+  border-radius: 20px;
+  box-shadow: 0 18px 36px rgba(89, 4, 168, 0.28);
+}
+
+.myAvtar img {
+  border-radius: 50%;
+  border: 3px solid rgba(199, 112, 240, 0.5);
+  box-shadow: 0 12px 30px rgba(140, 76, 220, 0.35);
+}
+
+/* ---------- 项目页副标题 ---------- */
+.project-subtitle {
+  max-width: 780px;
+  margin: 0 auto;
+  line-height: 1.9;
+  color: rgba(233, 228, 245, 0.78);
+}
+
+/* ---------- 经历页（时间线） ---------- */
+.resume .resume-left {
+  padding-right: 15px !important;
+  padding-left: 15px !important;
+}
+
+.resume .resume-subtitle {
+  margin-bottom: 4px;
+  font-size: 1.1em;
+  font-weight: 600;
+  text-align: left;
+  color: #ffffff;
+}
+
+.resume .resume-period {
+  margin-bottom: 12px;
+  font-size: 0.85em;
+  text-align: left;
+  color: rgba(233, 228, 245, 0.6);
+}
+
+.resume .resume-item code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(147, 76, 206, 0.18);
+  color: #d9b3f5;
+}
+
+/* ---------- 响应式微调 ---------- */
+@media (max-width: 991px) {
+  .navbar-nav .nav-link {
+    padding-right: 0.6rem !important;
+    padding-left: 0.6rem !important;
+    font-size: 0.95em !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .typewriter-box {
+    padding: 20px 0 0 0;
+    text-align: center;
+  }
+
+  .hero-illustration-col {
+    padding: 10px 15px 50px;
+  }
+
+  .logo {
+    height: 1.7em !important;
+  }
 }
