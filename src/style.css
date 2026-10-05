@@ -1026,10 +1026,14 @@ button:focus {
   width: 372px;
   max-width: calc(100vw - 32px);
   border-radius: 18px;
-  background: linear-gradient(160deg, rgba(30, 18, 48, 0.95), rgba(18, 12, 32, 0.97));
-  border: 1px solid rgba(200, 137, 230, 0.38);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(10px);
+  /* 唱机面板：磨砂玻璃 + 金属冷光，左上角带一点紫调氛围光 */
+  background:
+    radial-gradient(130% 90% at 14% 0%, rgba(199, 112, 240, 0.2), rgba(0, 0, 0, 0) 62%),
+    linear-gradient(160deg, rgba(34, 25, 50, 0.94), rgba(13, 9, 22, 0.97));
+  border: 1px solid rgba(200, 137, 230, 0.36);
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
   overflow: hidden;
   transform-origin: left bottom;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.25s ease,
@@ -1053,7 +1057,10 @@ button:focus {
 
 /* 折叠时只收高度、保留宽度，方便 APlayer 重新测量进度条 */
 .mp-body {
-  max-height: 640px;
+  /* 收回 / 展开的高度过渡：要容得下「唱机 + 展开的歌单」整套内容，
+     同时不超过视口剩余高度（面板贴底，超出的部分会被裁到屏幕外）。
+     改成黑胶布局后这一块变高了（唱片 144 + 信息 + 控制条），所以旧值 640 会切掉歌单底部。 */
+  max-height: min(820px, calc(100vh - 80px));
   opacity: 1;
   overflow: hidden;
   transition: max-height 0.35s ease, opacity 0.25s ease;
@@ -1177,14 +1184,237 @@ button:focus {
 }
 
 /* ---------- 播放区与加载 / 错误遮罩 ---------- */
+/* ================= 黑胶唱机（Vinyl Turntable Style） =================
+   两个几何量：
+     --mp-disc      唱片直径
+     --mp-disc-top  唱片相对 stage 内容盒（padding box）的顶部偏移，给抬起的唱针预留高度
+   唱片 / 高光层 / 唱针层都是「与唱片等大的绝对定位盒子」，所以桌面端（372px）
+   与移动端（自适应宽度）都能自动对齐，不需要任何 JS 测量。 */
 .mp-stage {
   position: relative;
-  padding: 8px 10px 0;
+  --mp-disc: 144px;
+  --mp-disc-top: 34px;
+  padding: var(--mp-disc-top) 12px 14px;
+  /* 唱机台面：金属冷光 + 顶部紫调氛围光 */
+  background:
+    radial-gradient(120% 78% at 50% 0%, rgba(199, 112, 240, 0.14), rgba(0, 0, 0, 0) 62%),
+    linear-gradient(180deg, rgba(15, 10, 26, 0.92), rgba(8, 5, 15, 0.96));
+  border: 1px solid rgba(199, 112, 240, 0.22);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 唱片本体：把 APlayer 的封面容器改造成圆形黑胶，中心 30% 露出专辑封面当作标签 */
+.mp-aplayer .aplayer .aplayer-pic {
+  float: none !important;
+  display: block !important;
+  width: var(--mp-disc) !important;
+  height: var(--mp-disc) !important;
+  margin: 0 auto 14px !important;
+  border-radius: 50% !important;
+  background-size: cover !important;
+  background-position: center !important;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(199, 112, 240, 0.32),
+    0 0 26px rgba(199, 112, 240, 0.16) !important;
+  /* 恒速旋转；暂停时用 animation-play-state 冻结在当前角度（不会弹回 0°）。
+     注意 animation-play-state 必须写在 animation 简写之后，否则会被简写重置。 */
+  animation: mp-vinyl-spin 20s linear infinite;
+  animation-play-state: paused;
+}
+
+/* 黑胶纹路：细密同心圆纹理 + 中间挖空露出封面 */
+.mp-aplayer .aplayer .aplayer-pic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background-image:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.045) 0 1px, rgba(0, 0, 0, 0.05) 1px 3px),
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(0, 0, 0, 0) 0 30%,
+      rgba(8, 6, 12, 0.92) 30.5%,
+      rgba(30, 25, 40, 0.96) 48%,
+      rgba(6, 4, 10, 0.96) 100%
+    );
+}
+
+/* 唱片中心的播放 / 暂停按钮：统一成 34×34 并锁死在唱片正中。
+   APlayer 播放中会把暂停按钮缩成小方块挪到右下角（.aplayer-pause{bottom:4px;right:4px}），
+   放在旋转的唱片上就会跟着一起「公转」；居中后自转中心 = 自身中心，视觉上原地不动。
+   同时反向自转抵消唱片旋转，保证图标永远正立；默认淡出，悬停才显示。 */
+.mp-aplayer .aplayer .aplayer-pic .aplayer-button {
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 30px !important;
+  height: 30px !important;
+  /* 30 + 2×2 边框 = 34，取一半做居中的负边距 */
+  margin: -17px 0 0 -17px !important;
+  border: 2px solid rgba(255, 255, 255, 0.85) !important;
+  background: rgba(12, 8, 22, 0.5) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 0 6px rgba(199, 112, 240, 0.12) !important;
+  opacity: 0 !important;
+  animation: mp-vinyl-spin-back 20s linear infinite;
+  animation-play-state: paused;
+}
+
+/* 图标居中（APlayer 的 play / pause 图标各自写死了 top/left/尺寸） */
+.mp-aplayer .aplayer .aplayer-pic .aplayer-button svg {
+  top: 50% !important;
+  left: 50% !important;
+  width: 16px !important;
+  height: 16px !important;
+  transform: translate(-50%, -50%);
+}
+
+.mp-aplayer .aplayer .aplayer-pic:hover .aplayer-button,
+.mp-aplayer .aplayer .aplayer-pic .aplayer-button:focus-visible {
+  opacity: 1 !important;
+}
+
+/* 播放中：唱片转、按钮反向转（两条动画同周期同起点，合起来恒为 0°） */
+.mp-is-playing .mp-aplayer .aplayer .aplayer-pic,
+.mp-is-playing .mp-aplayer .aplayer .aplayer-pic .aplayer-button {
+  animation-play-state: running;
+}
+
+/* 兜底（支持 :has 的浏览器）：直接跟随 APlayer 播放按钮的真实状态，
+   即使 React 状态因浏览器拦截自动播放等原因没跟上，也不会「空转」。
+   不支持 :has 的浏览器会整条规则丢弃，自动回退到上面的 .mp-is-playing。 */
+.mp-panel:has(.aplayer-button.aplayer-play) .aplayer .aplayer-pic,
+.mp-panel:has(.aplayer-button.aplayer-play) .aplayer .aplayer-pic .aplayer-button {
+  animation-play-state: paused !important;
+}
+
+.mp-panel:has(.aplayer-button.aplayer-pause) .aplayer .aplayer-pic,
+.mp-panel:has(.aplayer-button.aplayer-pause) .aplayer .aplayer-pic .aplayer-button {
+  animation-play-state: running !important;
+}
+
+/* 静止高光层：左上柔光 + 斜向反光 + 标签外圈亮线 + 中心轴孔（不随唱片旋转） */
+.mp-vinyl-sheen {
+  position: absolute;
+  left: 50%;
+  top: var(--mp-disc-top);
+  width: var(--mp-disc);
+  height: var(--mp-disc);
+  margin-left: calc(var(--mp-disc) / -2);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+  background-image:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(
+      118deg,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.02) 24%,
+      rgba(255, 255, 255, 0) 44%,
+      rgba(255, 255, 255, 0) 68%,
+      rgba(255, 255, 255, 0.08) 100%
+    ),
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(0, 0, 0, 0) 0 31.4%,
+      rgba(0, 0, 0, 0.6) 31.6% 32.6%,
+      rgba(255, 255, 255, 0.12) 32.8% 33.6%,
+      rgba(0, 0, 0, 0) 34%
+    ),
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(4, 3, 7, 0.92) 0 2.4%,
+      rgba(255, 255, 255, 0.14) 2.6% 3.4%,
+      rgba(0, 0, 0, 0) 3.8%
+    );
+}
+
+/* 唱针层：与唱片等大的定位盒；枢轴固定在唱片右上角外侧，因此桌面 / 移动端都对齐 */
+.mp-stylus {
+  position: absolute;
+  left: 50%;
+  top: var(--mp-disc-top);
+  width: var(--mp-disc);
+  height: var(--mp-disc);
+  margin-left: calc(var(--mp-disc) / -2);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* 金属枢轴（不随唱臂旋转，所以单独放在唱臂之外） */
+.mp-stylus-pivot {
+  position: absolute;
+  right: -31px;
+  top: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #f8f4ff, #9a89b5 46%, #241d2e 100%);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* 唱臂：transform-origin 落在枢轴圆心，旋转时唱臂 + 唱头一起摆动 */
+.mp-stylus-arm {
+  position: absolute;
+  right: -20px;
+  top: -4px;
+  width: 92px;
+  height: 6px;
+  border-radius: 3px;
+  transform-origin: 100% 50%;
+  transform: rotate(16deg); /* 未播放：抬起外偏，针尖悬在唱片上方 */
+  transition: transform 0.7s cubic-bezier(0.34, 1.16, 0.64, 1);
+  background: linear-gradient(180deg, #f2eef9 0%, #b3a6c9 38%, #574b6b 72%, #221c2b 100%);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.55);
+}
+
+/* 播放中：针尖压下，落在外圈纹路上 */
+.mp-is-playing .mp-stylus-arm {
+  transform: rotate(-19deg);
+}
+
+/* 同上兜底：跟随 APlayer 按钮状态，避免唱片与唱针姿态不一致 */
+.mp-panel:has(.aplayer-button.aplayer-pause) .mp-stylus-arm {
+  transform: rotate(-19deg) !important;
+}
+
+/* 唱头（跟着唱臂一起摆动） */
+.mp-stylus-head {
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  width: 20px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 3px 5px 5px 3px;
+  background: linear-gradient(180deg, #ded6ee, #7c6f93 55%, #2b2436 100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes mp-vinyl-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 反向自转：与唱片同周期同起点，两者合起来恒为 0°，图标始终正立 */
+@keyframes mp-vinyl-spin-back {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
 }
 
 .mp-mask {
   position: absolute;
-  inset: 8px 10px 0;
+  inset: 0;
+  z-index: 6;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1195,7 +1425,7 @@ button:focus {
   color: rgba(233, 228, 245, 0.85);
   text-align: center;
   background: rgba(12, 8, 22, 0.85);
-  border-radius: 12px;
+  border-radius: 15px;
 }
 
 .mp-mask-error {
@@ -1247,71 +1477,191 @@ button:focus {
   text-align: right;
 }
 
-/* ---------- APlayer 暗黑化 ---------- */
+/* ---------- APlayer 暗黑化 · 黑胶唱机控制台 ---------- */
 .mp-aplayer .aplayer {
-  margin: 0;
+  margin: 0 !important;
+  padding: 0 !important;
   color: #ece7f7 !important;
   font-family: inherit !important;
-  background: rgba(14, 9, 25, 0.75) !important;
-  border: 1px solid rgba(199, 112, 240, 0.28);
-  border-radius: 14px;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
 }
 
-.mp-aplayer .aplayer .aplayer-info {
-  border-bottom: 1px solid rgba(199, 112, 240, 0.18) !important;
+/* 主体改为上下结构：唱片区（APlayer 的 pic 位置）→ 曲目信息 → 歌词 → 控制条 */
+.mp-aplayer .aplayer .aplayer-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+/* 曲目信息：铺满整宽并居中（APlayer 原本是「左侧封面 + 固定高度信息块」的横向布局） */
+.mp-aplayer .aplayer .aplayer-info,
+.mp-aplayer .aplayer.aplayer-withlrc .aplayer-info {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+  text-align: center;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-music {
+  /* APlayer 默认 width: calc(100% - 105px)（给左侧封面留位），
+     这里封面已经改到上方了，必须拉满整宽，否则曲名会整体偏左、不在唱片正下方 */
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  line-height: 1.45 !important;
+  white-space: normal !important;
 }
 
 .mp-aplayer .aplayer .aplayer-info .aplayer-music .aplayer-title {
-  font-size: 14px !important;
+  display: block !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
   color: #f4efff !important;
+  letter-spacing: 0.4px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .mp-aplayer .aplayer .aplayer-info .aplayer-music .aplayer-author {
+  display: block !important;
+  margin-top: 2px;
+  font-size: 12px !important;
   color: rgba(233, 228, 245, 0.6) !important;
 }
 
+/* 控制条：进度条 + 时间 + 播放控件 */
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller {
+  align-items: center;
+}
+
 .mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-time {
-  color: rgba(233, 228, 245, 0.6) !important;
+  bottom: 0 !important;
+  height: auto !important;
+  padding-left: 2px !important;
+  color: rgba(233, 228, 245, 0.62) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-icon {
+  width: 17px !important;
+  height: 17px !important;
+  margin-left: 4px !important;
+  opacity: 0.8;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-icon:hover {
+  opacity: 1;
+  transform: translateY(-1px) scale(1.08);
 }
 
 .mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-icon path {
   fill: rgba(233, 228, 245, 0.78) !important;
 }
 
+/* 进度条：内凹银色轨道 + 紫色已播 */
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap {
+  margin: 0 4px 0 0 !important;
+  padding: 6px 0 !important;
+}
+
 .mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar {
+  height: 4px !important;
+  border-radius: 2px !important;
   background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-loaded {
-  background: rgba(255, 255, 255, 0.28) !important;
+  height: 4px !important;
+  border-radius: 2px !important;
+  background: rgba(255, 255, 255, 0.26) !important;
 }
 
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-played {
+  height: 4px !important;
+  border-radius: 2px !important;
+  background: linear-gradient(90deg, #8b5cf6, #c770f0) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-thumb {
+  background: linear-gradient(180deg, #ffffff, #cfc3e4) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(199, 112, 240, 0.16);
+}
+
+/* 音量条：金属细轨，悬停时从图标上方弹出（沿用 APlayer 的交互） */
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap .aplayer-volume-bar-wrap {
+  bottom: 20px !important;
+  right: -5px !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap .aplayer-volume-bar-wrap .aplayer-volume-bar {
+  width: 6px !important;
+  height: 40px !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap .aplayer-volume-bar-wrap .aplayer-volume-bar .aplayer-volume {
+  width: 6px !important;
+  border-radius: 3px !important;
+  background: linear-gradient(0deg, #8b5cf6, #c770f0) !important;
+}
+
+/* 歌词：半透明玻璃浮层（上下渐隐色块跟浮层底色对齐） */
 .mp-aplayer .aplayer .aplayer-lrc {
+  width: 100% !important;
+  height: 44px !important;
+  margin: 0 0 10px !important;
   text-shadow: none !important;
+  background: rgba(10, 6, 18, 0.42);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(199, 112, 240, 0.14);
 }
 
 .mp-aplayer .aplayer .aplayer-lrc:before {
-  background: linear-gradient(180deg, #150d24 0%, rgba(21, 13, 36, 0) 100%) !important;
+  background: linear-gradient(180deg, rgba(12, 8, 22, 0.9) 0%, rgba(12, 8, 22, 0) 100%) !important;
 }
 
 .mp-aplayer .aplayer .aplayer-lrc:after {
-  background: linear-gradient(180deg, rgba(21, 13, 36, 0) 0%, #150d24 100%) !important;
+  background: linear-gradient(180deg, rgba(12, 8, 22, 0) 0%, rgba(12, 8, 22, 0.9) 100%) !important;
 }
 
 .mp-aplayer .aplayer .aplayer-lrc p {
+  height: 22px !important;
+  font-size: 13px !important;
+  line-height: 22px !important;
   color: rgba(233, 228, 245, 0.45) !important;
 }
 
 .mp-aplayer .aplayer .aplayer-lrc p.aplayer-lrc-current {
   color: #d8b4fe !important;
+  text-shadow: 0 0 12px rgba(199, 112, 240, 0.5) !important;
 }
 
+/* 歌单：跟台面同色的抽屉，选中项左侧一条紫色指示条 */
 .mp-aplayer .aplayer .aplayer-list {
+  width: 100%;
+  margin-top: 10px;
   border-top: 1px solid rgba(199, 112, 240, 0.18) !important;
+  border-radius: 12px;
+  background: rgba(9, 6, 16, 0.5);
+}
+
+.mp-aplayer .aplayer .aplayer-list ol {
+  border-radius: 12px;
 }
 
 .mp-aplayer .aplayer .aplayer-list ol li {
+  height: 34px !important;
+  line-height: 34px !important;
   color: rgba(233, 228, 245, 0.82) !important;
   border-top: 1px solid rgba(199, 112, 240, 0.1) !important;
 }
@@ -1323,6 +1673,7 @@ button:focus {
 
 .mp-aplayer .aplayer .aplayer-list ol li.aplayer-list-light {
   background: rgba(199, 112, 240, 0.16) !important;
+  box-shadow: inset 3px 0 0 #c770f0;
 }
 
 .mp-aplayer .aplayer .aplayer-list ol li:hover {
@@ -1356,7 +1707,25 @@ button:focus {
   }
 
   .mp-body {
-    max-height: 72vh;
+    max-height: min(760px, 84vh);
+  }
+
+  /* 窄屏时唱片略小一点，保证唱针枢轴不越界 */
+  .mp-stage {
+    --mp-disc: 132px;
+    --mp-disc-top: 32px;
+  }
+}
+
+/* 尊重系统「减弱动态效果」：停掉旋转与唱针过渡（播放逻辑不受影响） */
+@media (prefers-reduced-motion: reduce) {
+  .mp-aplayer .aplayer .aplayer-pic,
+  .mp-aplayer .aplayer .aplayer-pic .aplayer-button {
+    animation: none !important;
+  }
+
+  .mp-stylus-arm {
+    transition: none;
   }
 }
 

@@ -14,8 +14,13 @@ import profile from "../portfolio.config";
 
 /**
  * ==========================================================================
- *  悬浮音乐播放器（暗黑风格 · 固定在页面左下角）
+ *  悬浮音乐播放器（复古拟物 · 黑胶唱机风格 · 固定在页面左下角）
  * ==========================================================================
+ *  视觉：APlayer 的封面容器被改造成「黑胶唱片」（外圈黑胶纹理 + 中心专辑标签），
+ *  播放时恒速旋转（暂停用 animation-play-state 冻结在当前角度，不会弹回 0°）；
+ *  面板里另有一根拟物唱针，播放时压下、暂停时抬起。
+ *  两者都是纯 CSS 动画，状态来自 APlayer 转发的 audio 事件（play / pause）。
+ *
  *  数据链路：
  *    默认走自建解析服务（music-api/，同源 /music/api）——
  *      网易云 / QQ / 抖音 / 汽水：公共 Meting 实例聚合解析；
@@ -118,6 +123,8 @@ function MusicPlayer() {
   const containerRef = useCallback((node) => setContainerEl(node), []);
   /** APlayer 是否已创建完成：容器节点由回调 ref 注入、比 effect 晚一帧，首屏预加载要等它 */
   const [playerReady, setPlayerReady] = useState(false);
+  /** 是否正在播放：驱动黑胶旋转与唱针压下 / 抬起（APlayer 转发的 audio 事件同步） */
+  const [playing, setPlaying] = useState(false);
   const playerRef = useRef(null);
   const abortRef = useRef(null);
   const lastIndexRef = useRef(-1);
@@ -318,10 +325,20 @@ function MusicPlayer() {
     });
     player.on("volumechange", () => writePrefs({ volume: player.audio.volume }));
 
+    // 唱片旋转 / 唱针姿态依赖「是否正在播放」：
+    // APlayer 内部会把原生 audio 事件（play / playing / pause / ended）转发到 .on()，
+    // 这里只做一个「播放态 → React 状态」的同步，不动它的播放逻辑。
+    const syncPlaying = () => setPlaying(!!player.audio && player.audio.paused === false);
+    player.on("play", syncPlaying);
+    player.on("playing", syncPlaying);
+    player.on("pause", () => setPlaying(false));
+    player.on("ended", () => setPlaying(false));
+
     return () => {
       player.destroy();
       playerRef.current = null;
       setPlayerReady(false);
+      setPlaying(false);
     };
   }, [containerEl]);
 
@@ -417,7 +434,9 @@ function MusicPlayer() {
       {/* 关闭(✕) 只是把面板收成挂件图标：面板本体继续留在 DOM 里（CSS 视觉隐藏），
           APlayer 实例 / 当前曲目 / 播放进度都不会丢，重新展开即可继续用。 */}
       <section
-        className={`mp-panel${collapsed ? " mp-is-collapsed" : ""}${closed ? " mp-is-hidden" : ""}`}
+        className={`mp-panel${collapsed ? " mp-is-collapsed" : ""}${closed ? " mp-is-hidden" : ""}${
+          playing ? " mp-is-playing" : ""
+        }`}
         aria-label="悬浮音乐播放器"
       >
         <header className="mp-head">
@@ -479,6 +498,16 @@ function MusicPlayer() {
           </label>
 
           <div className="mp-stage">
+            {/* 静止高光层（玻璃反光 / 标签外圈 / 中心轴孔）：压在唱片上方，
+                用来体现出「唱片本体确实在转」，而不是整体一起转。 */}
+            <div className="mp-vinyl-sheen" aria-hidden="true" />
+            {/* 拟物唱针：与唱片共用 CSS 变量定位，播放时压下、暂停时平滑抬起 */}
+            <div className="mp-stylus" aria-hidden="true">
+              <span className="mp-stylus-pivot" />
+              <span className="mp-stylus-arm">
+                <span className="mp-stylus-head" />
+              </span>
+            </div>
             <div className="mp-aplayer" ref={containerRef} />
             {loading ? (
               <div className="mp-mask">

@@ -1,5 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act } from "react-dom/test-utils";
 import MusicPlayer from "./MusicPlayer";
 import profile from "../portfolio.config";
 
@@ -11,7 +12,9 @@ import profile from "../portfolio.config";
  *   1) 切换平台 → 清空列表 → 载入新榜单 → 自动播放；
  *   2) 点击 ✕ 只隐藏面板（不卸载、不销毁实例），重新展开后歌单与容器都还在；
  *   3) 重新展开时列表为空会自动重新拉取榜单；
- *   4) 点击 ↻ 先清空列表再重新请求当前榜单。
+ *   4) 点击 ↻ 先清空列表再重新请求当前榜单；
+ *   5) 黑胶视觉：播放时进入旋转态（mp-is-playing）、暂停 / 播完回到静止态，
+ *      并且隐藏 / 重新展开时状态与实例都不丢。
  */
 const instances = [];
 
@@ -231,5 +234,65 @@ describe("MusicPlayer", () => {
 
     await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
     await waitFor(() => expect(instances[0].calls.slice(-2)).toEqual(["switch", "play"]));
+  });
+
+  it("黑胶唱机：播放时进入旋转态，暂停 / 播完回到静止态，唱针装饰常驻", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+
+    // 装饰层常驻 DOM：静止高光层 + 唱针（枢轴 / 唱臂 / 唱头）
+    expect(document.querySelector(".mp-vinyl-sheen")).toBeInTheDocument();
+    expect(document.querySelector(".mp-stylus .mp-stylus-pivot")).toBeInTheDocument();
+    expect(document.querySelector(".mp-stylus .mp-stylus-arm .mp-stylus-head")).toBeInTheDocument();
+
+    const panel = document.querySelector(".mp-panel");
+    expect(panel.className).not.toContain("mp-is-playing");
+
+    // APlayer 会把原生 audio 事件转发给 .on(...)：组件据此切「播放中」，
+    // CSS 再用 animation-play-state / transform 让唱片旋转、唱针压下。
+    act(() => {
+      instances[0].audio.paused = false;
+      instances[0].emit("play");
+    });
+    expect(panel.className).toContain("mp-is-playing");
+
+    act(() => {
+      instances[0].audio.paused = true;
+      instances[0].emit("pause");
+    });
+    expect(panel.className).not.toContain("mp-is-playing");
+
+    // 一首歌播完：同样回到静止态，不会一直空转
+    act(() => {
+      instances[0].audio.paused = false;
+      instances[0].emit("play");
+    });
+    act(() => instances[0].emit("ended"));
+    expect(panel.className).not.toContain("mp-is-playing");
+  });
+
+  it("黑胶唱机：隐藏 / 重新展开面板时播放状态与实例都不丢", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+
+    act(() => {
+      instances[0].audio.paused = false;
+      instances[0].emit("play");
+    });
+
+    const panel = document.querySelector(".mp-panel");
+    const stage = document.querySelector(".mp-aplayer");
+    expect(panel.className).toContain("mp-is-playing");
+
+    fireEvent.click(screen.getByLabelText("隐藏播放器"));
+    // 收起成挂件：音乐继续播（不暂停、不销毁实例），唱片旋转状态一并保留
+    expect(instances[0].audio.paused).toBe(false);
+    expect(instances[0].destroyed).toBeFalsy();
+    expect(panel.className).toContain("mp-is-playing");
+
+    fireEvent.click(screen.getByLabelText("打开音乐播放器"));
+    expect(panel.className).toContain("mp-is-playing");
+    expect(document.querySelector(".mp-aplayer")).toBe(stage);
+    expect(instances).toHaveLength(1);
   });
 });
