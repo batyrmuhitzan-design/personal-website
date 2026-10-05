@@ -1031,11 +1031,24 @@ button:focus {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(10px);
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transform-origin: left bottom;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.25s ease,
+    transform 0.25s ease, visibility 0.25s ease;
 }
 
 .mp-panel:hover {
   border-color: rgba(199, 112, 240, 0.6);
+}
+
+/* 关闭（✕）时：面板只做视觉隐藏，DOM 节点继续存在，
+   这样 APlayer 实例 / 当前曲目 / 播放进度都不会丢。
+   注意用 visibility 而不是 display：display:none 会把盒子尺寸算成 0，
+   导致 APlayer 的进度条宽度测量失真（且它自身不监听 resize，无法自愈）。 */
+.mp-is-hidden {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  pointer-events: none;
 }
 
 /* 折叠时只收高度、保留宽度，方便 APlayer 重新测量进度条 */

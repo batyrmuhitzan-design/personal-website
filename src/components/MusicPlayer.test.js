@@ -7,7 +7,11 @@ import profile from "../portfolio.config";
  * 播放器组件测试：
  * APlayer 依赖真实音频环境，这里用一个轻量替身，只保留组件真正调用到的接口
  * （list.add / list.clear / list.switch / play / lrc.show / lrc.hide / on）。
- * 解析服务通过 mock fetch 返回固定榜单，验证「切换平台 → 清空列表 → 载入新榜单 → 自动播放」。
+ * 解析服务通过 mock fetch 返回固定榜单，覆盖：
+ *   1) 切换平台 → 清空列表 → 载入新榜单 → 自动播放；
+ *   2) 点击 ✕ 只隐藏面板（不卸载、不销毁实例），重新展开后歌单与容器都还在；
+ *   3) 重新展开时列表为空会自动重新拉取榜单；
+ *   4) 点击 ↻ 先清空列表再重新请求当前榜单。
  */
 const instances = [];
 
@@ -17,8 +21,10 @@ jest.mock("aplayer", () => {
       this.options = options;
       this.handlers = {};
       this.calls = [];
+      this.audio = { volume: 1, src: "", paused: true };
       this.play = jest.fn(() => {
         this.calls.push("play");
+        this.audio.paused = false; // 与真实 audio 一致：开始播放后 paused=false
       });
       // 注意：真实 APlayer 的歌曲数组挂在 list 上（ap.list.audios），替身必须一致
       this.list = {
@@ -40,7 +46,6 @@ jest.mock("aplayer", () => {
         },
       };
       this.lrc = { show: jest.fn(), hide: jest.fn() };
-      this.audio = { volume: 1, src: "" };
       instances.push(this);
     }
 
@@ -146,14 +151,85 @@ describe("MusicPlayer", () => {
     expect(screen.getByText("重试")).toBeInTheDocument();
   });
 
-  it("隐藏后收起面板并保留启动按钮（音乐不中断）", async () => {
+  it("点击 ✕ 只把面板收起成挂件：保留 APlayer 实例与容器节点，重新展开歌单还在", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+
+    const panel = document.querySelector(".mp-panel");
+    const stage = document.querySelector(".mp-aplayer");
+
+    fireEvent.click(screen.getByLabelText("隐藏播放器"));
+
+    // 面板仍留在 DOM 里（只是视觉隐藏），挂件出现，实例没有被销毁
+    expect(document.querySelector(".mp-panel")).toBe(panel);
+    expect(panel.className).toContain("mp-is-hidden");
+    expect(screen.getByLabelText("打开音乐播放器")).toBeInTheDocument();
+    expect(instances).toHaveLength(1);
+    expect(instances[0].destroyed).toBeFalsy();
+
+    // 重新展开：同一个面板 / 同一个 APlayer 容器，不需要也不应该重建实例
+    fireEvent.click(screen.getByLabelText("打开音乐播放器"));
+
+    expect(panel.className).not.toContain("mp-is-hidden");
+    expect(document.querySelector(".mp-aplayer")).toBe(stage);
+    expect(screen.queryByLabelText("打开音乐播放器")).not.toBeInTheDocument();
+    expect(instances).toHaveLength(1);
+    expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length);
+    expect(screen.getByText(`${PLAYLISTS.spotify.length} 首`)).toBeInTheDocument();
+  });
+
+  it("记住「已关闭」时首屏隐藏面板，但依然创建 APlayer 并预加载榜单", async () => {
+    window.localStorage.setItem("shasha-music-player", JSON.stringify({ closed: true }));
+    render(<MusicPlayer />);
+
+    expect(document.querySelector(".mp-panel").className).toContain("mp-is-hidden");
+    // 隐藏 ≠ 卸载：实例照建、榜单照拉，展开时不会出现空面板
+    await waitFor(() => expect(instances).toHaveLength(1));
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+  });
+
+  it("重新展开时若列表为空，会按当前下拉榜单重新请求", async () => {
     render(<MusicPlayer />);
     await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
 
     fireEvent.click(screen.getByLabelText("隐藏播放器"));
+    instances[0].list.clear(); // 模拟列表为空（解析失败 / 被清空）
+    const callsBefore = global.fetch.mock.calls.length;
 
-    expect(screen.queryByLabelText("悬浮音乐播放器")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("打开音乐播放器")).toBeInTheDocument();
-    expect(instances[0].destroyed).toBeFalsy();
+    fireEvent.click(screen.getByLabelText("打开音乐播放器"));
+
+    await waitFor(() => expect(global.fetch.mock.calls.length).toBeGreaterThan(callsBefore));
+    expect(global.fetch.mock.calls[callsBefore][0]).toContain("platform=spotify");
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+  });
+
+  it("点击 ↻ 先清空当前列表，再重新请求当前榜单", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+
+    const callsBefore = global.fetch.mock.calls.length;
+    fireEvent.click(screen.getByLabelText("重新加载榜单"));
+
+    // 立刻清空（不保留旧列表），底部数量归零
+    expect(instances[0].list.audios).toHaveLength(0);
+    expect(screen.getByText("—")).toBeInTheDocument();
+
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+    expect(global.fetch.mock.calls[callsBefore][0]).toContain("platform=spotify");
+    // 首屏预加载 1 次 add + 重新加载 1 次 add
+    expect(instances[0].calls.filter((name) => name === "add")).toHaveLength(2);
+  });
+
+  it("播放中点击 ↻，重新加载完成后继续播放", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+
+    instances[0].list.switch(0);
+    instances[0].play(); // 进入「正在播放」状态（audio.paused = false）
+
+    fireEvent.click(screen.getByLabelText("重新加载榜单"));
+
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+    await waitFor(() => expect(instances[0].calls.slice(-2)).toEqual(["switch", "play"]));
   });
 });

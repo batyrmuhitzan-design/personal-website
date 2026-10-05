@@ -24,6 +24,9 @@ import profile from "../portfolio.config";
  *
  *  组件生命周期：挂在 App.js 的 Routes 之外，路由切换不会卸载，
  *  因此 APlayer 实例与播放进度都能保持连续。
+ *  关闭（✕）只做「收起成挂件 + 视觉隐藏」，绝不卸载面板：一旦卸载，APlayer 的
+ *  DOM 会随之消失，而实例无法重新挂载，重新展开就会变成空面板（历史 bug）。
+ *  隐藏用 visibility 而不是 display，保证盒子尺寸不变、进度条测量准确。
  * ==========================================================================
  */
 
@@ -109,7 +112,12 @@ function MusicPlayer() {
   const [collapsed, setCollapsed] = useState(() => initialPrefs.collapsed === true);
   const [closed, setClosed] = useState(() => initialPrefs.closed === true);
 
-  const containerRef = useRef(null);
+  // 容器节点用「回调 ref + state」保存：节点挂载/变化时初始化 effect 都能感知，
+  // 不会出现「节点晚于 effect 出现 → APlayer 永远建不出来」的空面板。
+  const [containerEl, setContainerEl] = useState(null);
+  const containerRef = useCallback((node) => setContainerEl(node), []);
+  /** APlayer 是否已创建完成：容器节点由回调 ref 注入、比 effect 晚一帧，首屏预加载要等它 */
+  const [playerReady, setPlayerReady] = useState(false);
   const playerRef = useRef(null);
   const abortRef = useRef(null);
   const lastIndexRef = useRef(-1);
@@ -280,12 +288,14 @@ function MusicPlayer() {
     [applySongs]
   );
 
-  // 初始化 APlayer：只创建一次，保证路由切换时播放不中断
+  // 初始化 APlayer：只创建一次，保证路由切换 / 隐藏面板时播放不中断。
+  // 注意：面板是「常驻 DOM + 隐藏」而不是卸载，所以容器节点不会被替换，
+  //       playerRef 一旦建好就一直复用（切平台只换列表，不重建实例）。
   useEffect(() => {
-    if (CONFIG.enabled === false || !containerRef.current || playerRef.current) return undefined;
+    if (CONFIG.enabled === false || !containerEl || playerRef.current) return undefined;
     const prefs = readPrefs();
     const player = new APlayer({
-      container: containerRef.current,
+      container: containerEl,
       audio: [],
       theme: THEME_COLOR,
       lrcType: 3, // 3 = 异步拉取歌词地址（这里指向同源的 /music/api/lrc）
@@ -299,6 +309,7 @@ function MusicPlayer() {
       storageName: `${STORAGE_KEY}-ap`,
     });
     playerRef.current = player;
+    setPlayerReady(true);
 
     player.on("error", () => handlersRef.current.onError());
     player.on("listswitch", (info) => {
@@ -310,23 +321,32 @@ function MusicPlayer() {
     return () => {
       player.destroy();
       playerRef.current = null;
+      setPlayerReady(false);
     };
-  }, []);
+  }, [containerEl]);
 
-  // 首次进入页面：预加载榜单但不自动播放（浏览器也会拦截无交互的自动播放）
+  // 首次进入页面：等 APlayer 就绪后预加载榜单，但不自动播放
+  // （用户还没交互，浏览器会拦截 autoplay；也避免无谓打扰）
   useEffect(() => {
-    if (CONFIG.enabled === false || !platformKey) return;
+    if (CONFIG.enabled === false || !playerReady || !platformKey) return;
     loadPlatform(platformKey, { autoplay: false });
-    // 仅在挂载时预加载一次，之后由用户切换平台或点「重新加载」触发
+    // 仅在 APlayer 首次就绪时预加载，之后由切换平台 / 重新加载 / 重新打开触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [playerReady]);
 
-  // 展开面板后触发一次 resize，让 APlayer 重新计算进度条宽度
+  // 重新展开（或从挂件恢复）时，把当前曲目的歌词显隐同步一次：
+  // 隐藏期间不会触发 listswitch，APlayer 内部的歌词可见状态可能已过期。
+  // 说明：隐藏用的是 visibility（盒子尺寸不变），而 APlayer 自身不监听 window.resize，
+  //       所以这里不需要再做进度条尺寸重算。
   useEffect(() => {
-    if (closed || collapsed) return undefined;
-    const timer = setTimeout(() => window.dispatchEvent(new Event("resize")), 80);
+    if (closed || collapsed || !playerReady) return undefined;
+    const player = playerRef.current;
+    if (!player || !player.list || !Array.isArray(player.list.audios) || !player.list.audios.length) {
+      return undefined;
+    }
+    const timer = setTimeout(() => syncLyrics(player.list.index), 0);
     return () => clearTimeout(timer);
-  }, [closed, collapsed]);
+  }, [closed, collapsed, playerReady, syncLyrics]);
 
   const handlePlatformChange = useCallback(
     (event) => {
@@ -346,8 +366,19 @@ function MusicPlayer() {
     });
   }, []);
 
+  /** 重新加载（↻）：先清空当前列表，再重新请求「当前下拉选中榜单」的曲目 */
   const handleReload = useCallback(() => {
-    loadPlatform(platformKey, { autoplay: false });
+    const player = playerRef.current;
+    const wasPlaying = !!(player && player.audio && player.audio.paused === false);
+    if (player && player.list) {
+      player.list.clear();
+      lastIndexRef.current = -1;
+      failuresRef.current = { index: -1, count: 0, tried: new Set() };
+      setCount(0);
+    }
+    setNotice("");
+    // 原本在播就续播，避免「点刷新 = 突然静音」
+    loadPlatform(platformKey, { autoplay: wasPlaying });
   }, [loadPlatform, platformKey]);
 
   const handleClose = useCallback(() => {
@@ -355,10 +386,14 @@ function MusicPlayer() {
     writePrefs({ closed: true });
   }, []);
 
+  /** 从挂件重新展开：列表为空时按当前选中的榜单重新拉取一次 */
   const handleOpen = useCallback(() => {
     setClosed(false);
     writePrefs({ closed: false });
-  }, []);
+    const player = playerRef.current;
+    const hasSongs = !!(player && player.list && Array.isArray(player.list.audios) && player.list.audios.length);
+    if (!hasSongs && !loading) loadPlatform(platformKey, { autoplay: false });
+  }, [loadPlatform, platformKey, loading]);
 
   if (CONFIG.enabled === false || !PLATFORMS.length) return null;
 
@@ -377,97 +412,99 @@ function MusicPlayer() {
         >
           <AiOutlineCustomerService />
         </button>
-      ) : (
-        <section
-          className={`mp-panel${collapsed ? " mp-is-collapsed" : ""}`}
-          aria-label="悬浮音乐播放器"
-        >
-          <header className="mp-head">
-            <div className="mp-title">
-              <AiOutlineCustomerService className="mp-title-icon" />
-              <span className="mp-title-text">
-                <strong>{CONFIG.title || "音乐播放器"}</strong>
-                {CONFIG.subtitle ? <em>{CONFIG.subtitle}</em> : null}
-              </span>
-            </div>
-            <div className="mp-actions">
-              <button
-                type="button"
-                onClick={handleReload}
-                disabled={loading}
-                aria-label="重新加载榜单"
-                title="重新加载榜单"
-              >
-                <AiOutlineReload className={loading ? "mp-spin" : ""} />
-              </button>
-              <button
-                type="button"
-                onClick={toggleCollapsed}
-                aria-label={collapsed ? "展开播放器" : "折叠播放器"}
-                title={collapsed ? "展开" : "折叠"}
-              >
-                {collapsed ? <AiOutlineUp /> : <AiOutlineDown />}
-              </button>
-              <button
-                type="button"
-                onClick={handleClose}
-                aria-label="隐藏播放器"
-                title="隐藏（音乐继续播放）"
-              >
-                <AiOutlineClose />
-              </button>
-            </div>
-          </header>
+      ) : null}
 
-          <div className="mp-body">
-            <label className="mp-picker">
-              <span className="mp-picker-label">平台 / 榜单</span>
-              <select
-                value={platformKey}
-                onChange={handlePlatformChange}
-                disabled={loading}
-                aria-label="选择音乐平台与榜单"
-              >
-                {groups.map((group) => (
-                  <optgroup key={group.title} label={group.title}>
-                    {group.items.map((item) => (
-                      <option key={item.key} value={item.key}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
-
-            <div className="mp-stage">
-              <div className="mp-aplayer" ref={containerRef} />
-              {loading ? (
-                <div className="mp-mask">
-                  <AiOutlineLoading3Quarters className="mp-spin" />
-                  <span>正在解析「{current ? current.name : "榜单"}」…</span>
-                </div>
-              ) : null}
-              {!loading && error ? (
-                <div className="mp-mask mp-mask-error">
-                  <AiOutlineExclamationCircle />
-                  <span>{error}</span>
-                  <button type="button" onClick={handleReload}>
-                    重试
-                  </button>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mp-foot">
-              <span className="mp-count">{count ? `${count} 首` : "—"}</span>
-              <span className="mp-tip" title={tip}>
-                {tip}
-              </span>
-            </div>
+      {/* 关闭(✕) 只是把面板收成挂件图标：面板本体继续留在 DOM 里（CSS 视觉隐藏），
+          APlayer 实例 / 当前曲目 / 播放进度都不会丢，重新展开即可继续用。 */}
+      <section
+        className={`mp-panel${collapsed ? " mp-is-collapsed" : ""}${closed ? " mp-is-hidden" : ""}`}
+        aria-label="悬浮音乐播放器"
+      >
+        <header className="mp-head">
+          <div className="mp-title">
+            <AiOutlineCustomerService className="mp-title-icon" />
+            <span className="mp-title-text">
+              <strong>{CONFIG.title || "音乐播放器"}</strong>
+              {CONFIG.subtitle ? <em>{CONFIG.subtitle}</em> : null}
+            </span>
           </div>
-        </section>
-      )}
+          <div className="mp-actions">
+            <button
+              type="button"
+              onClick={handleReload}
+              disabled={loading}
+              aria-label="重新加载榜单"
+              title="重新加载榜单"
+            >
+              <AiOutlineReload className={loading ? "mp-spin" : ""} />
+            </button>
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              aria-label={collapsed ? "展开播放器" : "折叠播放器"}
+              title={collapsed ? "展开" : "折叠"}
+            >
+              {collapsed ? <AiOutlineUp /> : <AiOutlineDown />}
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="隐藏播放器"
+              title="隐藏（音乐继续播放）"
+            >
+              <AiOutlineClose />
+            </button>
+          </div>
+        </header>
+
+        <div className="mp-body">
+          <label className="mp-picker">
+            <span className="mp-picker-label">平台 / 榜单</span>
+            <select
+              value={platformKey}
+              onChange={handlePlatformChange}
+              disabled={loading}
+              aria-label="选择音乐平台与榜单"
+            >
+              {groups.map((group) => (
+                <optgroup key={group.title} label={group.title}>
+                  {group.items.map((item) => (
+                    <option key={item.key} value={item.key}>
+                      {item.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+
+          <div className="mp-stage">
+            <div className="mp-aplayer" ref={containerRef} />
+            {loading ? (
+              <div className="mp-mask">
+                <AiOutlineLoading3Quarters className="mp-spin" />
+                <span>正在解析「{current ? current.name : "榜单"}」…</span>
+              </div>
+            ) : null}
+            {!loading && error ? (
+              <div className="mp-mask mp-mask-error">
+                <AiOutlineExclamationCircle />
+                <span>{error}</span>
+                <button type="button" onClick={handleReload}>
+                  重试
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mp-foot">
+            <span className="mp-count">{count ? `${count} 首` : "—"}</span>
+            <span className="mp-tip" title={tip}>
+              {tip}
+            </span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
