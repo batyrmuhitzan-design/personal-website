@@ -982,3 +982,368 @@ button:focus {
     height: 1.7em !important;
   }
 }
+
+/* ================================================================ */
+/*  莎莎 · 悬浮音乐播放器（固定在左下角，暗黑高质感）                  */
+/*  说明：APlayer 原生是浅色皮肤，这里统一覆盖成站点的暗紫配色；      */
+/*        选择器沿用 APlayer 的 DOM 结构（info / list / lrc），       */
+/*        升级依赖导致改版时需要同步检查。                          */
+/* ================================================================ */
+
+.music-player {
+  position: fixed;
+  left: 22px;
+  bottom: 22px;
+  z-index: 9999;
+  text-align: left;
+  font-size: 14px;
+}
+
+/* ---------- 隐藏后的启动按钮 ---------- */
+.mp-launcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  color: #f3ecff;
+  background: linear-gradient(135deg, #6d28d9, #c770f0);
+  border: 1px solid rgba(199, 112, 240, 0.55);
+  border-radius: 50%;
+  box-shadow: 0 12px 28px rgba(89, 4, 168, 0.45);
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.mp-launcher:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 16px 34px rgba(140, 76, 220, 0.55);
+}
+
+/* ---------- 面板外壳 ---------- */
+.mp-panel {
+  width: 372px;
+  max-width: calc(100vw - 32px);
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(30, 18, 48, 0.95), rgba(18, 12, 32, 0.97));
+  border: 1px solid rgba(200, 137, 230, 0.38);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.mp-panel:hover {
+  border-color: rgba(199, 112, 240, 0.6);
+}
+
+/* 折叠时只收高度、保留宽度，方便 APlayer 重新测量进度条 */
+.mp-body {
+  max-height: 640px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.25s ease;
+}
+
+.mp-is-collapsed .mp-body {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- 标题栏 ---------- */
+.mp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(20, 13, 34, 0.78);
+  border-bottom: 1px solid rgba(199, 112, 240, 0.22);
+}
+
+.mp-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mp-title-icon {
+  flex: 0 0 auto;
+  font-size: 22px;
+  color: #c770f0;
+}
+
+.mp-title-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mp-title-text strong {
+  font-size: 0.95em;
+  color: #f4efff;
+  letter-spacing: 0.5px;
+}
+
+.mp-title-text em {
+  font-size: 0.72em;
+  font-style: normal;
+  color: rgba(233, 228, 245, 0.6);
+}
+
+.mp-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mp-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  color: rgba(233, 228, 245, 0.75);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.mp-actions button:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(199, 112, 240, 0.18);
+  border-color: rgba(199, 112, 240, 0.45);
+}
+
+.mp-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- 平台 / 榜单选择 ---------- */
+.mp-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 4px;
+}
+
+.mp-picker-label {
+  flex: 0 0 auto;
+  font-size: 0.72em;
+  color: rgba(233, 228, 245, 0.6);
+}
+
+.mp-picker select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 0.85em;
+  color: #f4efff;
+  background: rgba(12, 8, 22, 0.92);
+  border: 1px solid rgba(199, 112, 240, 0.35);
+  border-radius: 10px;
+  outline: none;
+}
+
+.mp-picker select:focus {
+  border-color: rgba(199, 112, 240, 0.85);
+  box-shadow: 0 0 0 2px rgba(199, 112, 240, 0.18);
+}
+
+.mp-picker select option,
+.mp-picker select optgroup {
+  color: #f4efff;
+  background: #150d24;
+}
+
+/* ---------- 播放区与加载 / 错误遮罩 ---------- */
+.mp-stage {
+  position: relative;
+  padding: 8px 10px 0;
+}
+
+.mp-mask {
+  position: absolute;
+  inset: 8px 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 0.82em;
+  color: rgba(233, 228, 245, 0.85);
+  text-align: center;
+  background: rgba(12, 8, 22, 0.85);
+  border-radius: 12px;
+}
+
+.mp-mask-error {
+  color: #ffb4b4;
+}
+
+.mp-mask button {
+  margin-top: 4px;
+  padding: 4px 14px;
+  font-size: 0.9em;
+  color: #fff;
+  background: rgba(199, 112, 240, 0.28);
+  border: 1px solid rgba(199, 112, 240, 0.6);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mp-spin {
+  animation: mp-spin 1s linear infinite;
+}
+
+@keyframes mp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 底部状态 ---------- */
+.mp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px 12px;
+  font-size: 0.72em;
+  color: rgba(233, 228, 245, 0.55);
+}
+
+.mp-count {
+  flex: 0 0 auto;
+  color: rgba(199, 112, 240, 0.95);
+}
+
+.mp-tip {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+/* ---------- APlayer 暗黑化 ---------- */
+.mp-aplayer .aplayer {
+  margin: 0;
+  color: #ece7f7 !important;
+  font-family: inherit !important;
+  background: rgba(14, 9, 25, 0.75) !important;
+  border: 1px solid rgba(199, 112, 240, 0.28);
+  border-radius: 14px;
+  box-shadow: none !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info {
+  border-bottom: 1px solid rgba(199, 112, 240, 0.18) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-music .aplayer-title {
+  font-size: 14px !important;
+  color: #f4efff !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-music .aplayer-author {
+  color: rgba(233, 228, 245, 0.6) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-time {
+  color: rgba(233, 228, 245, 0.6) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-icon path {
+  fill: rgba(233, 228, 245, 0.78) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar {
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-loaded {
+  background: rgba(255, 255, 255, 0.28) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-lrc {
+  text-shadow: none !important;
+}
+
+.mp-aplayer .aplayer .aplayer-lrc:before {
+  background: linear-gradient(180deg, #150d24 0%, rgba(21, 13, 36, 0) 100%) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-lrc:after {
+  background: linear-gradient(180deg, rgba(21, 13, 36, 0) 0%, #150d24 100%) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-lrc p {
+  color: rgba(233, 228, 245, 0.45) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-lrc p.aplayer-lrc-current {
+  color: #d8b4fe !important;
+}
+
+.mp-aplayer .aplayer .aplayer-list {
+  border-top: 1px solid rgba(199, 112, 240, 0.18) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-list ol li {
+  color: rgba(233, 228, 245, 0.82) !important;
+  border-top: 1px solid rgba(199, 112, 240, 0.1) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-list ol li .aplayer-list-index,
+.mp-aplayer .aplayer .aplayer-list ol li .aplayer-list-author {
+  color: rgba(233, 228, 245, 0.55) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-list ol li.aplayer-list-light {
+  background: rgba(199, 112, 240, 0.16) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-list ol li:hover {
+  background: rgba(199, 112, 240, 0.12) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-notice {
+  color: #f4efff !important;
+  background-color: rgba(83, 43, 133, 0.94) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-miniswitcher {
+  background: rgba(30, 18, 48, 0.96) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-miniswitcher .aplayer-icon path {
+  fill: rgba(199, 112, 240, 0.85) !important;
+}
+
+/* ---------- 移动端：贴边放宽，避免遮挡内容 ---------- */
+@media (max-width: 767px) {
+  .music-player {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .mp-panel {
+    width: auto;
+    max-width: none;
+  }
+
+  .mp-body {
+    max-height: 72vh;
+  }
+}
+

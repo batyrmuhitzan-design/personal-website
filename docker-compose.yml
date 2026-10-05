@@ -32,6 +32,39 @@ services:
     # networks:
     #   - 1panel-network
 
+  # ========================================================================
+  #  音乐解析服务：给首页悬浮播放器提供国内可播放的音源
+  #    - 网易云 / QQ / 抖音 / 汽水榜单：公共 Meting 实例聚合解析
+  #    - Spotify 榜单：服务端解析公开歌单后，逐曲匹配国内可播放音源
+  #  仅在内网暴露 8080，由 personal-website 的 nginx 反代 /music/api/
+  # ========================================================================
+  music-api:
+    build:
+      context: ./music-api
+      dockerfile: Dockerfile
+    image: shasha-music-api:latest
+    container_name: music-api
+    restart: always
+    expose:
+      - "8080"
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=C.UTF-8
+      - PORT=8080
+      # 需要额外放行的音源域名（逗号分隔，子域名自动匹配）
+      # - ALLOW_HOSTS=example.cdn.com
+      # 调试用：允许代理任意域名（默认关闭，避免被当成开放代理滥用）
+      # - ALLOW_ANY=1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # 同上：若要被 1Panel 网络内的服务直接访问，两处注释一起打开
+    # networks:
+    #   - 1panel-network
+
 # networks:
 #   1panel-network:
 #     external: true

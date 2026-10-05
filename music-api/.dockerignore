@@ -1,0 +1,8 @@
+# 解析服务镜像只需要源码，其余一律忽略
+node_modules
+npm-debug.log
+.git
+.gitignore
+*.md
+Dockerfile
+.dockerignore

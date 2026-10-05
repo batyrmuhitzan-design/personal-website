@@ -14,6 +14,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
+import MusicPlayer from "./components/MusicPlayer";
 import "./style.css";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -35,6 +36,8 @@ function App() {
       <div className="App" id={load ? "no-scroll" : "scroll"}>
         <Navbar />
         <ScrollToTop />
+        {/* 悬浮音乐播放器挂在 Routes 之外：切换路由时组件不卸载，音乐保持连续播放 */}
+        <MusicPlayer />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />

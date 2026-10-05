@@ -1,0 +1,15 @@
+{
+  "name": "shasha-music-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "莎莎个人主页悬浮播放器的解析服务：公共 Meting 实例聚合 + Spotify 歌单跨源匹配（国内免 VPN 播放）",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "check": "node scripts/check.mjs"
+  }
+}

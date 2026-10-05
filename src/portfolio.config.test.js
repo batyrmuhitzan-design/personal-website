@@ -34,3 +34,47 @@ describe("portfolio.config", () => {
     });
   });
 });
+
+describe("portfolio.config · 悬浮音乐播放器", () => {
+  const music = profile.musicPlayer;
+
+  it("开关、解析服务地址与默认参数齐全", () => {
+    expect(typeof music.enabled).toBe("boolean");
+    expect(music.apiBase).toMatch(/^(https?:\/\/|\/)/);
+    expect(typeof music.limit).toBe("number");
+    expect(music.limit).toBeGreaterThan(0);
+    expect(music.volume).toBeGreaterThan(0);
+    expect(music.volume).toBeLessThanOrEqual(1);
+  });
+
+  it("榜单覆盖 Spotify / 网易云 / QQ / 抖音 / 汽水，字段完整且 key 唯一", () => {
+    expect(Array.isArray(music.platforms)).toBe(true);
+    expect(music.platforms.length).toBeGreaterThanOrEqual(5);
+
+    const keys = music.platforms.map((item) => item.key);
+    expect(new Set(keys).size).toBe(keys.length);
+
+    const groups = new Set(music.platforms.map((item) => item.group));
+    ["Spotify", "网易云音乐", "QQ 音乐", "抖音", "汽水音乐"].forEach((group) => {
+      expect(groups.has(group)).toBe(true);
+    });
+
+    music.platforms.forEach((item) => {
+      expect(item.name).toBeTruthy();
+      expect(item.provider).toBeTruthy();
+      expect(item.id).toMatch(/^[A-Za-z0-9_-]{1,64}$/);
+      expect(["meting", "match"]).toContain(item.mode);
+    });
+  });
+
+  it("默认平台在榜单列表内；Spotify 走跨源匹配，其余走聚合解析", () => {
+    expect(music.platforms.map((item) => item.key)).toContain(music.defaultPlatform);
+    music.platforms.forEach((item) => {
+      if (item.provider === "spotify") {
+        expect(item.mode).toBe("match");
+      } else {
+        expect(item.mode).toBe("meting");
+      }
+    });
+  });
+});

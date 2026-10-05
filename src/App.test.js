@@ -5,6 +5,10 @@ import App from "./App";
 // 粒子背景依赖 canvas，jsdom 中没有实现，测试时用空组件替代
 jest.mock("./components/Particle", () => () => null);
 
+// 悬浮播放器会创建 APlayer 并请求解析服务，与首页渲染无关，这里同样用空组件替代
+// （播放器自身的行为由 src/components/MusicPlayer.test.js 单独覆盖）
+jest.mock("./components/MusicPlayer", () => () => null);
+
 beforeAll(() => {
   // ScrollToTop 组件会调用 window.scrollTo，jsdom 未实现，这里补一个空实现
   window.scrollTo = jest.fn();

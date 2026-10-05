@@ -2,6 +2,9 @@
 node_modules
 build
 
+# 音乐解析服务有独立的构建上下文（music-api/），不进前端镜像
+music-api
+
 # 版本控制与编辑器
 .git
 .gitignore
