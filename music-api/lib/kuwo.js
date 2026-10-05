@@ -12,7 +12,8 @@
  * ==========================================================================
  */
 
-import { DEFAULT_UA, fetchJson, fetchText, HttpError } from "./util.js";
+import { DEFAULT_UA, HttpError } from "./util.js";
+import { requestJson, requestText } from "./http.js";
 
 const SEARCH_ENDPOINT = "http://search.kuwo.cn/r.s";
 const CONVERT_ENDPOINT = "http://antiserver.kuwo.cn/anti.s";
@@ -34,7 +35,7 @@ export async function kuwoSearch(keyword, limit = 6, timeout = 12000) {
   const url =
     `${SEARCH_ENDPOINT}?all=${encodeURIComponent(keyword)}` +
     `&ft=music&itemset=web_2013&client=kt&pn=0&rn=${limit}&rformat=json&encoding=utf8`;
-  const text = await fetchText(url, { headers: HEADERS }, timeout);
+  const text = await requestText(url, { headers: HEADERS, timeout });
   return parseSearchPayload(text, limit);
 }
 
@@ -68,7 +69,7 @@ export function parseSearchPayload(text, limit = 6) {
 export async function kuwoResolve(rid, timeout = 12000) {
   if (!/^MUSIC_\d+$/.test(String(rid))) throw new HttpError(400, `酷我 rid 不合法: ${rid}`);
   const url = `${CONVERT_ENDPOINT}?type=convert_url3&rid=${encodeURIComponent(rid)}&format=mp3&response=url`;
-  const data = await fetchJson(url, { headers: HEADERS }, timeout);
+  const data = await requestJson(url, { headers: HEADERS, timeout });
   const audio = typeof data?.url === "string" ? data.url : "";
   if (!audio.startsWith("http")) throw new HttpError(502, `酷我未返回可播放地址（rid=${rid}）`);
   return audio;

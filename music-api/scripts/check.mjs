@@ -145,6 +145,14 @@ check("目录：内置榜单 id 形态合法", () => {
   });
 });
 
+check("酷我：使用强制 IPv4 的 HTTP 客户端（容器无 IPv6 出口时不至于超时）", () => {
+  const httpSource = readFileSync(new URL("../lib/http.js", import.meta.url), "utf8");
+  const kuwoSource = readFileSync(new URL("../lib/kuwo.js", import.meta.url), "utf8");
+  assert.ok(httpSource.includes("family: 4"), "http.js 应强制 family: 4");
+  assert.ok(kuwoSource.includes('from "./http.js"'), "kuwo.js 应使用内置 HTTP 客户端");
+  assert.ok(!/fetchText|fetchJson/.test(kuwoSource), "kuwo.js 不应再依赖全局 fetch");
+});
+
 check("服务：入口暴露必需路由", () => {
   const server = readFileSync(new URL("../server.js", import.meta.url), "utf8");
   ["/api/health", "/api/playlist", "/api/resolve", "/api/lrc", "/api/stream"].forEach((route) => {

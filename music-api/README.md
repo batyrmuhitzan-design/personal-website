@@ -42,6 +42,9 @@ curl 'http://127.0.0.1:8080/api/playlist?platform=spotify&limit=3'   # 首次约
 
 - **多实例降级**：`api.injahow.cn` → `api.qijieya.cn` → `meting.icodeq.com`，任一挂掉自动切换；
   播放/封面/歌词地址统一按可用实例重新拼装，不把带 `auth` 的临时地址透给前端。
+- **容器内 IPv6 的坑**：酷我域名是双栈，而 Docker 容器通常没有 IPv6 出口，
+  全局 `fetch`（undici）会卡在 IPv6 上直接 `ETIMEDOUT`；因此酷我相关请求走
+  `lib/http.js`（`node:http` + `family: 4` 强制 IPv4），实测容器内立即恢复 200。
 - **Spotify**：Meting 生态没有该音源，官方匿名 token 也已封禁，因此改为解析
   `open.spotify.com/embed/playlist/<id>` 页面内嵌的曲目数据（约 50 首），再交给匹配模块。
 - **跨源匹配**：网易云搜索（拿封面/歌词）＋酷我搜索（欧美曲目完整度高）→ 相似度打分
