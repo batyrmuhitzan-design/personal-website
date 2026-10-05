@@ -15,6 +15,8 @@ import {
 } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import MusicPlayer from "./components/MusicPlayer";
+import SmoothScroll from "./components/SmoothScroll";
+import CustomCursor from "./components/CustomCursor";
 import "./style.css";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -33,6 +35,9 @@ function App() {
   return (
     <Router>
       <Preloader load={load} />
+      {/* 全局交互（两者都不产生可见 DOM）：Lenis 平滑滚动 + 自定义光标 */}
+      <SmoothScroll enabled={!load} />
+      <CustomCursor />
       <div className="App" id={load ? "no-scroll" : "scroll"}>
         <Navbar />
         <ScrollToTop />

@@ -1,22 +1,103 @@
-/* 字体：拉丁字符走 Outfit / PT Mono，中文自动回退到系统中文黑体，保证中英混排观感一致 */
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=PT+Mono&display=swap");
+/* ==========================================================================
+   莎莎 · 全局样式（globals）
+   本项目是 CRA（react-scripts 5），没有 Next.js 的 app/globals.css，
+   全局样式表就是这份 src/index.css（由 src/index.js 最先 import）。
+   这里只写整站基底，不碰任何组件样式。
+   ========================================================================== */
+
+/* 字体：视觉冲击力无衬线（Space Grotesk）+ 中文系统黑体回退。
+   ⚠️ @import 必须写在文件最顶部、@tailwind 指令之前。 */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --------------------------------------------------------------------------
+   基底：纯黑背景 + 纯白文字
+   -------------------------------------------------------------------------- */
+html {
+  background-color: #000000;
+  color: #ffffff;
+  /* 关闭系统默认平滑滚动，把滚动交给 Lenis，避免两者叠加导致进度漂移 */
+  scroll-behavior: auto;
+  /* Firefox 极简滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) #000000;
+}
 
 body {
   margin: 0;
-  font-family: "PT Mono", "Outfit", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", monospace !important;
+  background-color: #000000;
+  color: #ffffff;
+  font-family: "Space Grotesk", Inter, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0a0713;
-  background-image: linear-gradient(to left, rgb(27 20 41), rgb(20 15 35));
-  color: #ece7f7;
+  text-rendering: optimizeLegibility;
 }
 
 code {
-  font-family: "PT Mono", monospace;
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
+/* --------------------------------------------------------------------------
+   隐藏默认鼠标光标
+   说明：CustomCursor 组件运行时也会注入同一套规则并给 <html> 打上
+   has-custom-cursor 类；这里再静态写一份作为兜底 / 文档化，内容一致不冲突。
+   只作用于「精确指针 + 支持 hover」的设备，触屏设备保持原生光标。
+   -------------------------------------------------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+  html.has-custom-cursor,
+  html.has-custom-cursor body,
+  html.has-custom-cursor body * {
+    cursor: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Lenis 平滑滚动配套样式（官方推荐）
+   说明：SmoothScroll 组件已动态注入同一套样式；这里静态写一份作为兜底，
+   保证 Lenis 挂类名前页面也处于可预期状态。
+   -------------------------------------------------------------------------- */
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   选中与滚动条：极简黑白
+   -------------------------------------------------------------------------- */
 ::selection {
-  background: #c770f0;
-  color: #150a20;
+  background: #ffffff;
+  color: #000000;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }

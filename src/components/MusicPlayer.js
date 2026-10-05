@@ -476,7 +476,9 @@ function MusicPlayer() {
           </div>
         </header>
 
-        <div className="mp-body">
+        {/* data-lenis-prevent：滚轮落在这一块时别被全站 Lenis 接管，
+            否则歌单内部的滚动会被页面滚动抢走（Lenis 会沿 composedPath 向上查找该属性） */}
+        <div className="mp-body" data-lenis-prevent>
           <label className="mp-picker">
             <span className="mp-picker-label">平台 / 榜单</span>
             <select
