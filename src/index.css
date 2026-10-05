@@ -3,10 +3,14 @@
    本项目是 CRA（react-scripts 5），没有 Next.js 的 app/globals.css，
    全局样式表就是这份 src/index.css（由 src/index.js 最先 import）。
    这里只写整站基底，不碰任何组件样式。
+
+   颜色一律走 src/theme/tokens.css 里的 CSS 变量 —— 组件里不要写死色值。
    ========================================================================== */
 
-/* 字体：视觉冲击力无衬线（Space Grotesk）+ 中文系统黑体回退。
-   ⚠️ @import 必须写在文件最顶部、@tailwind 指令之前。 */
+/* 设计令牌：@import 必须写在所有规则之前 */
+@import "./theme/tokens.css";
+
+/* 字体：视觉冲击力无衬线（Space Grotesk）+ 中文系统黑体回退 */
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
@@ -14,32 +18,111 @@
 @tailwind utilities;
 
 /* --------------------------------------------------------------------------
-   基底：纯黑背景 + 纯白文字
+   基底：背景 / 文字取自令牌，并给「换肤」留一条常驻过渡
+   （即使没开过渡窗口，底色也不会生硬跳变）
    -------------------------------------------------------------------------- */
 html {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   /* 关闭系统默认平滑滚动，把滚动交给 Lenis，避免两者叠加导致进度漂移 */
   scroll-behavior: auto;
   /* Firefox 极简滚动条 */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) #000000;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  transition: background-color var(--theme-duration) var(--theme-ease),
+    color var(--theme-duration) ease;
 }
 
 body {
   margin: 0;
-  background-color: #000000;
-  color: #ffffff;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: "Space Grotesk", Inter, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui,
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transition: background-color var(--theme-duration) var(--theme-ease),
+    color var(--theme-duration) ease;
 }
 
 code {
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* --------------------------------------------------------------------------
+   丝滑换肤：过渡窗口
+   ThemeProvider 在切换主题的 600ms 内给 <html> 挂上 .theme-switching，
+   这段时间里给整棵树补一层「只过渡颜色」的规则：
+     · 用 !important 才能压过组件里各自的 transition（老规则里很多带 !important）
+     · 只在切换窗口内生效，结束即移除 —— 因此不会吃掉 hover / transform
+       这类「平时就该有」的过渡
+     · 位移类动画（framer-motion 的逐帧内联动画、CSS animation）不受影响
+   -------------------------------------------------------------------------- */
+html.theme-switching,
+html.theme-switching body,
+html.theme-switching body *,
+html.theme-switching body *::before,
+html.theme-switching body *::after {
+  transition: background-color var(--theme-duration) var(--theme-ease),
+    background-image var(--theme-duration) var(--theme-ease),
+    border-color var(--theme-duration) var(--theme-ease),
+    outline-color var(--theme-duration) var(--theme-ease),
+    color var(--theme-duration) ease,
+    fill var(--theme-duration) ease,
+    stroke var(--theme-duration) ease,
+    box-shadow var(--theme-duration) var(--theme-ease) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  html.theme-switching body *,
+  html.theme-switching body *::before,
+  html.theme-switching body *::after {
+    transition: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   品牌字章（Header 左上角）：1px 细线方章，悬停时反相 + 轻微旋转
+   -------------------------------------------------------------------------- */
+.monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  transition: background-color 0.35s var(--theme-ease),
+    border-color 0.35s var(--theme-ease), color 0.35s var(--theme-ease),
+    transform 0.35s var(--theme-ease);
+}
+
+.group:hover .monogram {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  transform: rotate(-6deg) scale(1.05);
+}
+
+/* --------------------------------------------------------------------------
+   焦点可达性兜底
+   上游模板里有一条 button:focus { box-shadow: none !important }，
+   会把「焦点圈」一起干掉。需要焦点圈的元素加 .focus-ring，
+   统一改用 outline 画（不会被那条 box-shadow 规则影响）。
+   -------------------------------------------------------------------------- */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* --------------------------------------------------------------------------
@@ -78,11 +161,11 @@ html.lenis {
 }
 
 /* --------------------------------------------------------------------------
-   选中与滚动条：极简黑白
+   选中与滚动条：极简黑白（跟随令牌，深浅两套自动生效）
    -------------------------------------------------------------------------- */
 ::selection {
-  background: #ffffff;
-  color: #000000;
+  background: var(--selection-bg);
+  color: var(--selection-fg);
 }
 
 ::-webkit-scrollbar {
@@ -91,13 +174,13 @@ html.lenis {
 }
 
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--scrollbar-thumb-hover);
 }

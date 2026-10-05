@@ -13,6 +13,14 @@ const profile = {
   nameEn: "Shasha", // 英文 / 拼音标识
   monogram: "S", // 头像与 Logo 上的首字母
 
+  /* ---------------- 顶部 Header 品牌区 ----------------
+     只作用于导航栏左上角的「字章 + 双行署名」；
+     Hero 大标题用的仍然是 name / nameEn，改这里不会动首屏主视觉。 */
+  brand: {
+    primary: "莎莎", // 第一行（中文）
+    secondary: "Batyr", // 第二行（拉丁字母，大写小字距展示）
+  },
+
   /* ---------------- 个人定位 ---------------- */
   role: "Web 全栈开发与自动化编程", // 中文定位
   roleEn: "Web Developer & Automation Specialist", // 英文定位

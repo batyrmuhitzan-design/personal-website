@@ -37,7 +37,7 @@ function AboutCard() {
             </li>
           </ul>
 
-          <p className="zh-text" style={{ color: "rgb(155 126 172)" }}>
+          <p className="zh-text" style={{ color: "var(--text-secondary)" }}>
             「把重复的事情交给代码，把时间留给创造。」
           </p>
           <footer className="blockquote-footer">莎莎 · Shasha</footer>

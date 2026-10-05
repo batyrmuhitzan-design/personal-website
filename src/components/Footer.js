@@ -8,6 +8,9 @@ import {
 import { SiBilibili, SiJuejin } from "react-icons/si";
 import profile from "../portfolio.config";
 
+/** 社交图标颜色：走设计令牌，浅色主题下才不会「白图标压白底」 */
+const ICON_STYLE = { color: "var(--text-primary)" };
+
 function Footer() {
   const year = new Date().getFullYear();
 
@@ -27,7 +30,7 @@ function Footer() {
             <li className="social-icons">
               <a
                 href={profile.github}
-                style={{ color: "white" }}
+                style={ICON_STYLE}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="GitHub"
@@ -38,7 +41,7 @@ function Footer() {
             <li className="social-icons">
               <a
                 href={`mailto:${profile.email}`}
-                style={{ color: "white" }}
+                style={ICON_STYLE}
                 aria-label="邮箱"
               >
                 <AiOutlineMail />
@@ -47,7 +50,7 @@ function Footer() {
             <li className="social-icons">
               <a
                 href={profile.bilibili}
-                style={{ color: "white" }}
+                style={ICON_STYLE}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="哔哩哔哩"
@@ -58,7 +61,7 @@ function Footer() {
             <li className="social-icons">
               <a
                 href={profile.juejin}
-                style={{ color: "white" }}
+                style={ICON_STYLE}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="掘金"
@@ -67,7 +70,7 @@ function Footer() {
               </a>
             </li>
             <li className="social-icons">
-              <span style={{ color: "white" }} title="微信：见联系页">
+              <span style={ICON_STYLE} title="微信：见联系页">
                 <AiOutlineWechat />
               </span>
             </li>

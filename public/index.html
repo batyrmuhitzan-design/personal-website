@@ -6,7 +6,9 @@
   <link rel="icon" href="%PUBLIC_URL%/favicon.svg" />
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0c0513" />
+  <!-- 移动端浏览器工具栏配色：默认深色，内联脚本会按用户偏好改写 -->
+  <meta name="theme-color" content="#0A0A0A" />
+  <meta name="color-scheme" content="dark light" />
   <meta name="author" content="莎莎 (Shasha)" />
   <meta name="description"
     content="莎莎（Shasha）的个人主页 —— Web 全栈开发与自动化编程 / Web Developer & Automation Specialist。技术栈：React、TypeScript、FastAPI、Python、Docker、PostgreSQL、C++。" />
@@ -35,6 +37,51 @@
   <meta name="twitter:description"
     content="莎莎（Shasha）的个人主页 —— Web 全栈开发与自动化编程 / Web Developer & Automation Specialist。" />
   <meta name="twitter:image" content="%PUBLIC_URL%/og-cover.svg" />
+
+  <!-- 字体来源与 src/index.css 的 @import 一致：提前建连，缩短首屏字体等待 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- 首屏兜底 + 防闪（顺序很重要）：
+       1) 内联样式：样式表就绪前也保持正确底色，消除白闪；
+       2) 内联脚本：在首帧之前把 <html data-theme> 写好 —— 与 React 侧同逻辑
+          （src/theme/ThemeContext.tsx 的 resolveInitialTheme），
+          否则会出现「先深色 → 再切成浅色」的闪屏。
+       ⚠️ 加减逻辑时请同步改 ThemeContext.tsx 的 THEME_STORAGE_KEY。 -->
+  <style>
+    html {
+      background-color: #0a0a0a;
+      color: #f5f5f5;
+    }
+
+    html[data-theme="light"] {
+      background-color: #ffffff;
+      color: #111111;
+    }
+  </style>
+  <script>
+    (function () {
+      var KEY = "shasha-theme";
+      try {
+        var stored = window.localStorage.getItem(KEY);
+        var mode = stored === "light" || stored === "dark" ? stored : null;
+        if (!mode) {
+          var prefersLight =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: light)").matches;
+          mode = prefersLight ? "light" : "dark";
+        }
+        var root = document.documentElement;
+        root.setAttribute("data-theme", mode);
+        root.style.colorScheme = mode;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", mode === "dark" ? "#0A0A0A" : "#FFFFFF");
+      } catch (err) {
+        /* 出任何意外都退回深色（站点原本的默认观感） */
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
 </head>
 
 <body>

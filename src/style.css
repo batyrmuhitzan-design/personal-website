@@ -1,17 +1,13 @@
+/* --------------------------------------------------------------------------
+   站点级令牌别名
+   上游模板遗留的两个变量名（--section-background-color / --imp-text-color）
+   在全站被引用了很多次，这里统一把它们指回设计令牌 ——
+   于是「紫色强调」自动变成黑白强调，模板代码不需要逐条改。
+   -------------------------------------------------------------------------- */
 html {
-  --section-background-color: linear-gradient(
-    to bottom left,
-    rgba(17, 16, 16, 0.582),
-    rgba(12, 8, 24, 0.904)
-  );
-
-  --image-gradient: linear-gradient(
-    to bottom left,
-    rgba(17, 16, 16, 0.678),
-    rgba(12, 10, 22, 0.863)
-  );
-
-  --imp-text-color: #c770f0;
+  --section-background-color: none; /* 分区不再铺整块深色渐变：极简靠留白分节 */
+  --image-gradient: none;
+  --imp-text-color: var(--accent); /* 原紫色强调 → 与背景对立的那一极 */
 }
 
 .purple {
@@ -22,193 +18,11 @@ button:focus {
   box-shadow: none !important;
 }
 
-/* --------- */
-/*  Preloader */
-/* --------- */
-#preloader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 999999;
-  background-color: #0c0513;
-  background-image: url(./Assets/pre.svg);
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-#preloader-none {
-  opacity: 0;
-}
-
-/* #preloader-none {
-  opacity: 0;
-  display: none;
-} */
-
 #no-scroll {
   overflow: hidden;
   height: 100vh;
 }
 
-/* --------- */
-/*Scrollbar   */
-/* --------- */
-
-::-webkit-scrollbar {
-  width: 7px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-  background: #2d1950;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-  background: rgba(178, 121, 216, 0.959);
-  border-radius: 12px;
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(222, 130, 235, 0.911);
-  border-radius: 12px;
-}
-
-/* --------- */
-/* Navbar Section  */
-/* --------- */
-.sticky {
-  background-color: #1b1a2ea9 !important;
-  transition: all 0.3s ease-out 0s !important;
-  box-shadow: 0px 10px 10px 0px rgba(9, 5, 29, 0.171) !important;
-  backdrop-filter: blur(15px) !important;
-}
-
-.navbar {
-  position: fixed !important;
-  transition: all 0.3s ease-out 0s !important;
-  padding: 0.3rem 2rem !important;
-  font-size: 1.2rem !important;
-}
-
-.navbar-toggler {
-  position: relative !important;
-  background-color: transparent !important;
-  border-color: transparent !important;
-}
-
-.navbar-toggler span {
-  display: block !important;
-  background-color: #be50f4 !important;
-  height: 4px !important;
-  width: 27px !important;
-  margin-top: 5px !important;
-  margin-bottom: 5px !important;
-  transform: rotate(0deg) !important;
-  left: 0 !important;
-  opacity: 1 !important;
-}
-
-.navbar-toggler:focus,
-.navbar-toggler:active {
-  outline: 0 !important;
-}
-
-.navbar-toggler span:nth-child(1),
-.navbar-toggler span:nth-child(3) {
-  transition: transform 0.35s ease-in-out !important;
-  transition: transform 0.35s ease-in-out !important;
-}
-
-.navbar-toggler:not(.collapsed) span:nth-child(1) {
-  position: absolute !important;
-  left: 12px !important;
-  top: 10px !important;
-  transform: rotate(135deg) !important;
-  opacity: 0.9 !important;
-}
-
-.navbar-toggler:not(.collapsed) span:nth-child(2) {
-  height: 12px !important;
-  visibility: hidden !important;
-  background-color: transparent !important;
-}
-
-.navbar-toggler:not(.collapsed) span:nth-child(3) {
-  position: absolute !important;
-  left: 12px !important;
-  top: 10px !important;
-  transform: rotate(-135deg) !important;
-  opacity: 0.9 !important;
-}
-
-@media (max-width: 767px) {
-  .navbar {
-    padding: 1rem 2rem !important;
-    font-size: 1.4rem !important;
-    background-color: #181a27 !important;
-  }
-  .navbar-nav .nav-item a::after {
-    display: none !important;
-  }
-}
-.navbar-brand {
-  color: rgb(250, 250, 250) !important;
-}
-
-.logo {
-  height: 1.4em !important;
-  width: 2.5em !important;
-}
-
-.navbar-nav .nav-link {
-  color: white !important;
-  padding-right: 1rem !important;
-  padding-left: 1rem !important;
-}
-
-.nav-link {
-  padding: 0.8rem 1rem !important;
-}
-
-@media (max-width: 767px) {
-  .nav-link {
-    padding: 0.7rem 1rem !important;
-  }
-}
-
-.navbar-nav .nav-item {
-  position: relative;
-  margin-left: 20px;
-}
-
-.navbar-nav .nav-item a {
-  font-weight: 400;
-  transition: all 0.3s ease-out 0s;
-  position: relative;
-  z-index: 1;
-}
-
-.navbar-nav .nav-item a::after {
-  content: "";
-  position: relative;
-  display: block;
-  height: 5px;
-  width: 0;
-  border-radius: 16px;
-  background: #c95bf5;
-  bottom: 1px;
-  left: 0;
-  z-index: -1;
-  transition: all 0.3s ease-out 0s;
-}
-
-.navbar-nav .nav-item a:hover::after {
-  width: 100%;
-}
 
 /* --------- */
 /* Home section */
@@ -271,7 +85,7 @@ button:focus {
 
 .home-content {
   padding: 9rem 0 2rem !important;
-  color: whitesmoke;
+  color: var(--text-primary);
   text-align: left;
 }
 
@@ -286,17 +100,17 @@ button:focus {
 }
 
 .main-name {
-  color: #cd5ff8;
+  color: var(--accent);
 }
 
 .Typewriter__wrapper {
   font-size: 2.2em !important;
-  color: #be6adf !important;
+  color: var(--accent) !important;
   font-weight: 600 !important;
 }
 .Typewriter__cursor {
   font-size: 2.4em !important;
-  color: #b562d6 !important;
+  color: var(--accent) !important;
 }
 
 @media (max-width: 767px) {
@@ -329,7 +143,7 @@ button:focus {
 }
 
 .home-about-description {
-  color: white !important;
+  color: var(--text-primary) !important;
   padding-top: 100px !important;
   padding-bottom: 20px !important;
   text-align: center;
@@ -344,7 +158,7 @@ button:focus {
 .home-about-social {
   text-align: center !important;
   padding-top: 25px;
-  color: white !important;
+  color: var(--text-primary) !important;
 }
 
 .home-about-social-links {
@@ -363,7 +177,7 @@ button:focus {
   text-align: center !important;
   font-size: 1.2em !important;
   line-height: 2em !important;
-  background: rgba(255, 255, 255, 0.972) !important;
+  background: var(--bg-primary) !important;
   border-radius: 50% !important;
   transition: 0.5s !important;
 }
@@ -376,7 +190,7 @@ button:focus {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: #68187a;
+  background: var(--surface-glass-strong);
   transition: 0.5s;
   transform: scale(0.9);
   z-index: -1;
@@ -384,13 +198,13 @@ button:focus {
 
 .home-social-icons:hover::before {
   transform: scale(1.1);
-  box-shadow: 0 0 15px #801f95;
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 
 .home-social-icons:hover {
-  color: #87209e;
-  box-shadow: 0 0 5px #87209e;
-  text-shadow: 0 0 2px #87209e;
+  color: var(--text-primary);
+  box-shadow: 0 0 5px var(--accent-glow);
+  text-shadow: 0 0 2px var(--accent-glow);
 }
 
 .social-icons {
@@ -400,14 +214,14 @@ button:focus {
 }
 
 .icon-colour {
-  color: #700c86 !important;
+  color: var(--text-primary) !important;
 }
 
 /* --------- */
 /* Footer */
 /* --------- */
 .footer {
-  background-color: rgb(10, 4, 22);
+  background-color: var(--bg-primary);
   bottom: 0 !important;
   padding-top: 10px !important;
   padding-bottom: 8px !important ;
@@ -433,7 +247,7 @@ button:focus {
 
 .footer h3 {
   font-size: 1em;
-  color: white !important;
+  color: var(--text-primary) !important;
   margin-top: 0.5em !important;
   margin-bottom: 0.5em !important;
 }
@@ -444,7 +258,7 @@ button:focus {
 }
 
 .blockquote-footer {
-  color: #a588c0 !important;
+  color: var(--accent) !important;
 }
 /* --------- */
 /* Projects */
@@ -465,8 +279,8 @@ button:focus {
 }
 
 .project-card-view {
-  box-shadow: 0 4px 5px 3px rgba(119, 53, 136, 0.459) !important;
-  color: white !important;
+  box-shadow: 0 4px 5px 3px var(--shadow-color) !important;
+  color: var(--text-primary) !important;
   background-color: transparent !important;
   opacity: 0.9 !important;
   transition: all 0.5s ease 0s !important;
@@ -475,7 +289,7 @@ button:focus {
 .project-card-view:hover {
   transform: scale(1.02) !important;
   overflow: hidden !important;
-  box-shadow: 0 4px 4px 5px rgba(129, 72, 144, 0.561) !important;
+  box-shadow: 0 4px 4px 5px var(--accent-glow) !important;
 }
 
 .blog-card {
@@ -488,14 +302,14 @@ button:focus {
 
 .blog-card-view {
   background-color: transparent !important;
-  box-shadow: 0 3px 3px 2px rgba(145, 77, 161, 0.459) !important;
-  color: white !important;
+  box-shadow: 0 3px 3px 2px var(--accent-glow) !important;
+  color: var(--text-primary) !important;
   transition: all 0.5s ease 0s !important;
   height: 100% !important;
 }
 
 .blog-link {
-  color: white !important;
+  color: var(--text-primary) !important;
   text-decoration: none !important;
 }
 
@@ -506,7 +320,7 @@ button:focus {
 .blog-card-view:hover {
   transform: scale(1.02) !important;
   overflow: hidden !important;
-  box-shadow: 0 3px 3px 5px rgba(155, 88, 173, 0.65) !important;
+  box-shadow: 0 3px 3px 5px var(--accent-glow) !important;
 }
 
 .card-img-top {
@@ -522,22 +336,22 @@ button:focus {
 }
 
 .btn-primary {
-  color: #fff !important;
-  background-color: #623686 !important;
-  border-color: #623686 !important;
+  color: var(--text-primary) !important;
+  background-color: var(--surface-glass-strong) !important;
+  border-color: var(--border-color) !important;
 }
 
 .btn-primary:hover {
-  color: #fff !important;
-  background-color: #6d20c5d7 !important;
-  border-color: #6d20c5d7 !important;
+  color: var(--text-primary) !important;
+  background-color: var(--surface-glass) !important;
+  border-color: var(--border-color) !important;
 }
 .btn:focus {
   outline: none !important;
   box-shadow: none !important;
 }
 .project-heading {
-  color: white !important;
+  color: var(--text-primary) !important;
   font-size: 2.3em !important;
   font-weight: 500 !important;
   padding-top: 10px !important;
@@ -552,7 +366,7 @@ button:focus {
   padding-top: 150px !important;
   padding-bottom: 30px !important;
   /* background-image: var(--section-background-color) !important; */
-  color: white !important;
+  color: var(--text-primary) !important;
 }
 
 .tech-icons {
@@ -563,24 +377,24 @@ button:focus {
   margin: 15px !important;
   padding: 10px 20px !important;
   opacity: 0.93 !important;
-  outline: 1.7px solid rgba(200, 137, 230, 0.637) !important;
+  outline: 1.7px solid var(--accent-line) !important;
   vertical-align: middle !important;
   text-align: center !important;
   border-radius: 24px !important;
-  box-shadow: 4px 5px 4px 3px rgba(89, 4, 168, 0.137) !important;
+  box-shadow: 4px 5px 4px 3px var(--shadow-color) !important;
   overflow: hidden !important;
   transition: all 0.4s ease 0s !important;
   width: fit-content !important;
   cursor: pointer !important;
   transition: outline-color 0.3s, outline-width 0.3s, transform 0.3s;
-  color: white;
+  color: var(--text-primary);
 }
 
 .tech-icons-text {
   display: flex;
   align-items: center;
   margin-left: 10px;
-  color: white;
+  color: var(--text-primary);
 }
 
 @media (max-width: 767px) {
@@ -592,7 +406,7 @@ button:focus {
 .tech-icons:hover {
   transform: scale(1.05) !important;
   overflow: hidden !important;
-  outline: 2.2px solid rgba(197, 115, 230, 0.883) !important;
+  outline: 2.2px solid var(--accent-line) !important;
 }
 .tech-icon-images {
   height: 1.6rem;
@@ -601,7 +415,7 @@ button:focus {
 
 .quote-card-view {
   border: none !important;
-  color: white !important;
+  color: var(--text-primary) !important;
   background-color: transparent !important;
 }
 
@@ -625,7 +439,7 @@ button:focus {
   padding-top: 110px !important;
   padding-bottom: 30px !important;
   background-image: var(--section-background-color) !important;
-  color: white !important;
+  color: var(--text-primary) !important;
 }
 
 .resume {
@@ -663,14 +477,14 @@ button:focus {
 .resume .resume-item {
   padding: 0 0 10px 25px;
   margin-top: -2px;
-  border-left: 2px solid #8a49a8;
+  border-left: 2px solid var(--accent-line);
   position: relative;
 }
 
 .resume .resume-item .resume-title {
   line-height: 18px;
   font-size: 0.9em;
-  background: #5234795d;
+  background: var(--surface-tint-strong);
   padding: 8px 15px;
   display: inline-block;
   font-weight: 600;
@@ -699,8 +513,8 @@ button:focus {
   border-radius: 50px;
   left: -9px;
   top: 0;
-  background: #fff;
-  border: 2px solid #8a49a8;
+  background: var(--bg-primary);
+  border: 2px solid var(--accent-line);
 }
 
 .like-item {
@@ -710,8 +524,8 @@ button:focus {
 }
 
 .like-btn {
-  background-color: #934cce5e !important;
-  border-color: #934cce5e !important;
+  background-color: var(--accent-soft) !important;
+  border-color: var(--accent-line) !important;
   padding: 0.25rem 0.98rem !important;
   border-radius: 5px !important;
   line-height: 1.4 !important;
@@ -720,8 +534,8 @@ button:focus {
 
 .like-btn:hover {
   transform: translateY(-2px) !important;
-  background-color: #a24dd386 !important;
-  border-color: #a24dd386 !important;
+  background-color: var(--accent-soft) !important;
+  border-color: var(--accent-line) !important;
 }
 
 .animate-like {
@@ -745,7 +559,7 @@ button:focus {
 
 .fork-btn-inner {
   line-height: 1.4em !important;
-  background-color: #934cce5e !important;
+  background-color: var(--accent-soft) !important;
   padding: 0.25rem 1.1rem !important;
   vertical-align: middle !important;
   text-align: center !important;
@@ -753,8 +567,8 @@ button:focus {
 
 .fork-btn-inner:hover {
   transform: translateY(-2px) !important;
-  background-color: #a24dd386 !important;
-  border-color: #a24dd386 !important;
+  background-color: var(--accent-soft) !important;
+  border-color: var(--accent-line) !important;
 }
 .fork-btn-inner::after {
   display: none !important;
@@ -782,7 +596,7 @@ button:focus {
   margin-top: 20px;
   font-size: 1em;
   line-height: 1.9;
-  color: rgba(233, 228, 245, 0.75);
+  color: var(--text-secondary);
   letter-spacing: 0.5px;
 }
 
@@ -796,7 +610,7 @@ button:focus {
 .hero-illustration {
   width: 100%;
   max-width: 480px;
-  filter: drop-shadow(0 18px 40px rgba(140, 76, 220, 0.35));
+  filter: drop-shadow(0 18px 40px var(--accent-glow));
 }
 
 /* ---------- 联系方式区块 ---------- */
@@ -805,7 +619,7 @@ button:focus {
   padding-top: 70px !important;
   padding-bottom: 80px !important;
   background-image: var(--section-background-color) !important;
-  color: white !important;
+  color: var(--text-primary) !important;
 }
 
 .contact-page {
@@ -816,7 +630,7 @@ button:focus {
   max-width: 760px;
   margin: 0 auto 10px;
   line-height: 1.9;
-  color: rgba(233, 228, 245, 0.78);
+  color: var(--text-secondary);
 }
 
 .contact-cards {
@@ -835,17 +649,17 @@ button:focus {
   justify-content: space-between;
   padding: 32px 24px;
   border-radius: 18px;
-  background: rgba(30, 18, 48, 0.55);
-  border: 1px solid rgba(200, 137, 230, 0.35);
-  box-shadow: 0 10px 26px rgba(89, 4, 168, 0.16);
+  background: var(--surface-glass);
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 10px 26px var(--shadow-color);
   transition: transform 0.35s ease, box-shadow 0.35s ease,
     border-color 0.35s ease;
 }
 
 .contact-card:hover {
   transform: translateY(-6px);
-  border-color: rgba(199, 112, 240, 0.85);
-  box-shadow: 0 16px 34px rgba(140, 76, 220, 0.32);
+  border-color: var(--accent-line);
+  box-shadow: 0 16px 34px var(--accent-glow);
 }
 
 .contact-icon {
@@ -865,7 +679,7 @@ button:focus {
   font-size: 0.98em;
   line-height: 1.8;
   word-break: break-all;
-  color: rgba(233, 228, 245, 0.86);
+  color: var(--text-primary);
 }
 
 .contact-btn {
@@ -875,18 +689,18 @@ button:focus {
   padding: 8px 20px;
   font-size: 0.92em;
   border-radius: 999px;
-  border: 1px solid rgba(200, 137, 230, 0.6);
-  background: rgba(147, 76, 206, 0.28);
-  color: #f2ecfb;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text-primary);
   text-decoration: none;
   cursor: pointer;
   transition: 0.3s ease;
 }
 
 .contact-btn:hover {
-  background: rgba(162, 77, 211, 0.6);
+  background: var(--accent-soft-strong);
   border-color: var(--imp-text-color);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 /* ---------- 技术栈图标（react-icons 版本） ---------- */
@@ -908,19 +722,19 @@ button:focus {
 }
 
 .tech-grid .tech-icons:hover svg {
-  filter: drop-shadow(0 0 8px rgba(199, 112, 240, 0.85));
+  filter: drop-shadow(0 0 8px var(--accent-glow));
 }
 
 /* ---------- 关于页插图 / 头像 ---------- */
 .about-img img {
   border-radius: 20px;
-  box-shadow: 0 18px 36px rgba(89, 4, 168, 0.28);
+  box-shadow: 0 18px 36px var(--shadow-color);
 }
 
 .myAvtar img {
   border-radius: 50%;
-  border: 3px solid rgba(199, 112, 240, 0.5);
-  box-shadow: 0 12px 30px rgba(140, 76, 220, 0.35);
+  border: 3px solid var(--accent-line);
+  box-shadow: 0 12px 30px var(--accent-glow);
 }
 
 /* ---------- 项目页副标题 ---------- */
@@ -928,7 +742,7 @@ button:focus {
   max-width: 780px;
   margin: 0 auto;
   line-height: 1.9;
-  color: rgba(233, 228, 245, 0.78);
+  color: var(--text-secondary);
 }
 
 /* ---------- 经历页（时间线） ---------- */
@@ -942,31 +756,24 @@ button:focus {
   font-size: 1.1em;
   font-weight: 600;
   text-align: left;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .resume .resume-period {
   margin-bottom: 12px;
   font-size: 0.85em;
   text-align: left;
-  color: rgba(233, 228, 245, 0.6);
+  color: var(--text-secondary);
 }
 
 .resume .resume-item code {
   padding: 1px 6px;
   border-radius: 6px;
-  background: rgba(147, 76, 206, 0.18);
-  color: #d9b3f5;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* ---------- 响应式微调 ---------- */
-@media (max-width: 991px) {
-  .navbar-nav .nav-link {
-    padding-right: 0.6rem !important;
-    padding-left: 0.6rem !important;
-    font-size: 0.95em !important;
-  }
-}
 
 @media (max-width: 767px) {
   .typewriter-box {
@@ -978,14 +785,12 @@ button:focus {
     padding: 10px 15px 50px;
   }
 
-  .logo {
-    height: 1.7em !important;
-  }
 }
 
 /* ================================================================ */
 /*  莎莎 · 悬浮音乐播放器（固定在左下角，暗黑高质感）                  */
-/*  说明：APlayer 原生是浅色皮肤，这里统一覆盖成站点的暗紫配色；      */
+/*  说明：APlayer 原生是浅色皮肤，这里统一覆盖成站点设计令牌；        */
+/*        浅色主题 = 白色黑胶 + 银色唱臂，深色主题 = 经典黑胶 + 冷光金属； */
 /*        选择器沿用 APlayer 的 DOM 结构（info / list / lrc），       */
 /*        升级依赖导致改版时需要同步检查。                          */
 /* ================================================================ */
@@ -1007,18 +812,18 @@ button:focus {
   width: 48px;
   height: 48px;
   font-size: 24px;
-  color: #f3ecff;
-  background: linear-gradient(135deg, #6d28d9, #c770f0);
-  border: 1px solid rgba(199, 112, 240, 0.55);
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border: 1px solid var(--accent-line);
   border-radius: 50%;
-  box-shadow: 0 12px 28px rgba(89, 4, 168, 0.45);
+  box-shadow: 0 12px 28px var(--shadow-strong);
   cursor: pointer;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .mp-launcher:hover {
   transform: translateY(-3px) scale(1.04);
-  box-shadow: 0 16px 34px rgba(140, 76, 220, 0.55);
+  box-shadow: 0 16px 34px var(--accent-glow);
 }
 
 /* ---------- 面板外壳 ---------- */
@@ -1026,11 +831,11 @@ button:focus {
   width: 372px;
   max-width: calc(100vw - 32px);
   border-radius: 18px;
-  /* 唱机面板：磨砂玻璃 + 金属冷光，左上角带一点紫调氛围光 */
+  /* 唱机面板：磨砂玻璃 + 金属冷光，左上角带一点极淡的强调色氛围光 */
   background:
-    radial-gradient(130% 90% at 14% 0%, rgba(199, 112, 240, 0.2), rgba(0, 0, 0, 0) 62%),
-    linear-gradient(160deg, rgba(34, 25, 50, 0.94), rgba(13, 9, 22, 0.97));
-  border: 1px solid rgba(200, 137, 230, 0.36);
+    radial-gradient(130% 90% at 14% 0%, var(--accent-soft), var(--overlay-fade) 62%),
+    linear-gradient(160deg, var(--surface-glass-strong), var(--surface-glass-strong));
+  border: 1px solid var(--accent-line);
   box-shadow: 0 20px 46px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
@@ -1041,7 +846,7 @@ button:focus {
 }
 
 .mp-panel:hover {
-  border-color: rgba(199, 112, 240, 0.6);
+  border-color: var(--accent-line);
 }
 
 /* 关闭（✕）时：面板只做视觉隐藏，DOM 节点继续存在，
@@ -1067,7 +872,7 @@ button:focus {
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(199, 112, 240, 0.4) rgba(255, 255, 255, 0.05);
+  scrollbar-color: var(--scrollbar-thumb) transparent;
   transition: max-height 0.35s ease, opacity 0.25s ease;
 }
 
@@ -1076,12 +881,12 @@ button:focus {
 }
 
 .mp-body::-webkit-scrollbar-thumb {
-  background-color: rgba(199, 112, 240, 0.35);
+  background-color: var(--accent-soft);
   border-radius: 3px;
 }
 
 .mp-body::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(199, 112, 240, 0.6);
+  background-color: var(--accent-soft-strong);
 }
 
 .mp-body::-webkit-scrollbar-track {
@@ -1101,8 +906,8 @@ button:focus {
   justify-content: space-between;
   gap: 10px;
   padding: 12px 14px;
-  background: rgba(20, 13, 34, 0.78);
-  border-bottom: 1px solid rgba(199, 112, 240, 0.22);
+  background: var(--surface-glass);
+  border-bottom: 1px solid var(--accent-line);
 }
 
 .mp-title {
@@ -1115,7 +920,7 @@ button:focus {
 .mp-title-icon {
   flex: 0 0 auto;
   font-size: 22px;
-  color: #c770f0;
+  color: var(--accent);
 }
 
 .mp-title-text {
@@ -1126,14 +931,14 @@ button:focus {
 
 .mp-title-text strong {
   font-size: 0.95em;
-  color: #f4efff;
+  color: var(--text-primary);
   letter-spacing: 0.5px;
 }
 
 .mp-title-text em {
   font-size: 0.72em;
   font-style: normal;
-  color: rgba(233, 228, 245, 0.6);
+  color: var(--text-secondary);
 }
 
 .mp-actions {
@@ -1149,7 +954,7 @@ button:focus {
   width: 28px;
   height: 28px;
   font-size: 16px;
-  color: rgba(233, 228, 245, 0.75);
+  color: var(--text-secondary);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -1158,9 +963,9 @@ button:focus {
 }
 
 .mp-actions button:hover:not(:disabled) {
-  color: #fff;
-  background: rgba(199, 112, 240, 0.18);
-  border-color: rgba(199, 112, 240, 0.45);
+  color: var(--text-primary);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
 }
 
 .mp-actions button:disabled {
@@ -1179,7 +984,7 @@ button:focus {
 .mp-picker-label {
   flex: 0 0 auto;
   font-size: 0.72em;
-  color: rgba(233, 228, 245, 0.6);
+  color: var(--text-secondary);
 }
 
 .mp-picker select {
@@ -1187,22 +992,22 @@ button:focus {
   min-width: 0;
   padding: 6px 10px;
   font-size: 0.85em;
-  color: #f4efff;
-  background: rgba(12, 8, 22, 0.92);
-  border: 1px solid rgba(199, 112, 240, 0.35);
+  color: var(--text-primary);
+  background: var(--surface-glass-strong);
+  border: 1px solid var(--accent-line);
   border-radius: 10px;
   outline: none;
 }
 
 .mp-picker select:focus {
-  border-color: rgba(199, 112, 240, 0.85);
-  box-shadow: 0 0 0 2px rgba(199, 112, 240, 0.18);
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .mp-picker select option,
 .mp-picker select optgroup {
-  color: #f4efff;
-  background: #150d24;
+  color: var(--text-primary);
+  background: var(--bg-primary);
 }
 
 /* ---------- 播放区与加载 / 错误遮罩 ---------- */
@@ -1217,11 +1022,11 @@ button:focus {
   --mp-disc: 144px;
   --mp-disc-top: 34px;
   padding: var(--mp-disc-top) 12px 14px;
-  /* 唱机台面：金属冷光 + 顶部紫调氛围光 */
+  /* 唱机台面：金属冷光 + 顶部极淡的强调色氛围光 */
   background:
-    radial-gradient(120% 78% at 50% 0%, rgba(199, 112, 240, 0.14), rgba(0, 0, 0, 0) 62%),
-    linear-gradient(180deg, rgba(15, 10, 26, 0.92), rgba(8, 5, 15, 0.96));
-  border: 1px solid rgba(199, 112, 240, 0.22);
+    radial-gradient(120% 78% at 50% 0%, var(--accent-soft), var(--overlay-fade) 62%),
+    linear-gradient(180deg, var(--surface-glass-strong), var(--surface-glass-strong));
+  border: 1px solid var(--accent-line);
   border-radius: 16px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -1236,8 +1041,8 @@ button:focus {
   border-radius: 50% !important;
   background-size: cover !important;
   background-position: center !important;
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(199, 112, 240, 0.32),
-    0 0 26px rgba(199, 112, 240, 0.16) !important;
+  box-shadow: 0 16px 30px var(--vinyl-shadow-strong), 0 0 0 2px var(--vinyl-ring),
+    0 0 26px var(--accent-glow) !important;
   /* 恒速旋转；暂停时用 animation-play-state 冻结在当前角度（不会弹回 0°）。
      注意 animation-play-state 必须写在 animation 简写之后，否则会被简写重置。 */
   animation: mp-vinyl-spin 20s linear infinite;
@@ -1252,13 +1057,17 @@ button:focus {
   border-radius: 50%;
   pointer-events: none;
   background-image:
-    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.045) 0 1px, rgba(0, 0, 0, 0.05) 1px 3px),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      var(--vinyl-groove-light) 0 1px,
+      var(--vinyl-groove-dark) 1px 3px
+    ),
     radial-gradient(
       circle at 50% 50%,
-      rgba(0, 0, 0, 0) 0 30%,
-      rgba(8, 6, 12, 0.92) 30.5%,
-      rgba(30, 25, 40, 0.96) 48%,
-      rgba(6, 4, 10, 0.96) 100%
+      var(--overlay-fade) 0 30%,
+      var(--vinyl-1) 30.5%,
+      var(--vinyl-2) 48%,
+      var(--vinyl-3) 100%
     );
 }
 
@@ -1275,9 +1084,9 @@ button:focus {
   height: 30px !important;
   /* 30 + 2×2 边框 = 34，取一半做居中的负边距 */
   margin: -17px 0 0 -17px !important;
-  border: 2px solid rgba(255, 255, 255, 0.85) !important;
-  background: rgba(12, 8, 22, 0.5) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 0 6px rgba(199, 112, 240, 0.12) !important;
+  border: 2px solid var(--border-strong) !important;
+  background: var(--surface-glass) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 0 6px var(--accent-glow) !important;
   opacity: 0 !important;
   animation: mp-vinyl-spin-back 20s linear infinite;
   animation-play-state: paused;
@@ -1303,10 +1112,10 @@ button:focus {
   animation-play-state: running;
 }
 
-/* 播放中额外加一层紫色辉光，静态截图里也能一眼看出「正在转」 */
+/* 播放中额外加一层强调色辉光，静态截图里也能一眼看出「正在转」 */
 .mp-is-playing .mp-aplayer .aplayer-pic {
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(199, 112, 240, 0.48),
-    0 0 32px rgba(199, 112, 240, 0.32) !important;
+  box-shadow: 0 16px 30px var(--vinyl-shadow-strong), 0 0 0 2px var(--vinyl-ring),
+    0 0 32px var(--accent-glow) !important;
 }
 
 /* 兜底（支持 :has 的浏览器）：直接跟随 APlayer 播放按钮的真实状态，
@@ -1334,27 +1143,27 @@ button:focus {
   pointer-events: none;
   z-index: 2;
   background-image:
-    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 42%),
+    radial-gradient(circle at 30% 22%, var(--vinyl-sheen), var(--overlay-fade) 42%),
     linear-gradient(
       118deg,
-      rgba(255, 255, 255, 0.16) 0%,
-      rgba(255, 255, 255, 0.02) 24%,
-      rgba(255, 255, 255, 0) 44%,
-      rgba(255, 255, 255, 0) 68%,
-      rgba(255, 255, 255, 0.08) 100%
+      var(--vinyl-sheen) 0%,
+      var(--vinyl-sheen-soft) 24%,
+      var(--overlay-fade) 44%,
+      var(--overlay-fade) 68%,
+      var(--vinyl-sheen-soft) 100%
     ),
     radial-gradient(
       circle at 50% 50%,
-      rgba(0, 0, 0, 0) 0 31.4%,
-      rgba(0, 0, 0, 0.6) 31.6% 32.6%,
-      rgba(255, 255, 255, 0.12) 32.8% 33.6%,
-      rgba(0, 0, 0, 0) 34%
+      var(--overlay-fade) 0 31.4%,
+      var(--vinyl-ring) 31.6% 32.6%,
+      var(--vinyl-sheen-soft) 32.8% 33.6%,
+      var(--overlay-fade) 34%
     ),
     radial-gradient(
       circle at 50% 50%,
-      rgba(4, 3, 7, 0.92) 0 2.4%,
-      rgba(255, 255, 255, 0.14) 2.6% 3.4%,
-      rgba(0, 0, 0, 0) 3.8%
+      var(--vinyl-hole) 0 2.4%,
+      var(--vinyl-ring) 2.6% 3.4%,
+      var(--overlay-fade) 3.8%
     );
 }
 
@@ -1378,7 +1187,7 @@ button:focus {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #f8f4ff, #9a89b5 46%, #241d2e 100%);
+  background: radial-gradient(circle at 34% 30%, var(--metal-1), var(--metal-2) 46%, var(--metal-4) 100%);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
@@ -1393,7 +1202,7 @@ button:focus {
   transform-origin: 100% 50%;
   transform: rotate(16deg); /* 未播放：抬起外偏，针尖悬在唱片上方 */
   transition: transform 0.7s cubic-bezier(0.34, 1.16, 0.64, 1);
-  background: linear-gradient(180deg, #f2eef9 0%, #b3a6c9 38%, #574b6b 72%, #221c2b 100%);
+  background: linear-gradient(180deg, var(--metal-1) 0%, var(--metal-2) 38%, var(--metal-3) 72%, var(--metal-4) 100%);
   box-shadow: 0 3px 7px rgba(0, 0, 0, 0.55);
 }
 
@@ -1416,7 +1225,7 @@ button:focus {
   height: 12px;
   margin-top: -6px;
   border-radius: 3px 5px 5px 3px;
-  background: linear-gradient(180deg, #ded6ee, #7c6f93 55%, #2b2436 100%);
+  background: linear-gradient(180deg, var(--metal-1), var(--metal-3) 55%, var(--metal-4) 100%);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
 }
 
@@ -1450,23 +1259,23 @@ button:focus {
   gap: 8px;
   padding: 12px;
   font-size: 0.82em;
-  color: rgba(233, 228, 245, 0.85);
+  color: var(--text-primary);
   text-align: center;
-  background: rgba(12, 8, 22, 0.85);
+  background: var(--surface-glass-strong);
   border-radius: 15px;
 }
 
 .mp-mask-error {
-  color: #ffb4b4;
+  color: var(--accent);
 }
 
 .mp-mask button {
   margin-top: 4px;
   padding: 4px 14px;
   font-size: 0.9em;
-  color: #fff;
-  background: rgba(199, 112, 240, 0.28);
-  border: 1px solid rgba(199, 112, 240, 0.6);
+  color: var(--text-primary);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
   border-radius: 8px;
   cursor: pointer;
 }
@@ -1489,12 +1298,12 @@ button:focus {
   gap: 8px;
   padding: 8px 14px 12px;
   font-size: 0.72em;
-  color: rgba(233, 228, 245, 0.55);
+  color: var(--text-secondary);
 }
 
 .mp-count {
   flex: 0 0 auto;
-  color: rgba(199, 112, 240, 0.95);
+  color: var(--accent);
 }
 
 .mp-tip {
@@ -1518,7 +1327,7 @@ button:focus {
   width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
-  color: #ece7f7 !important;
+  color: var(--text-primary) !important;
   font-family: inherit !important;
   font-size: 14px;
   line-height: 1.5 !important;
@@ -1575,7 +1384,7 @@ button:focus {
   display: block !important;
   font-size: 15px !important;
   font-weight: 600 !important;
-  color: #f4efff !important;
+  color: var(--text-primary) !important;
   letter-spacing: 0.4px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
@@ -1584,7 +1393,7 @@ button:focus {
   display: block !important;
   margin-top: 2px;
   font-size: 12px !important;
-  color: rgba(236, 231, 249, 0.72) !important;
+  color: var(--text-secondary) !important;
 }
 
 /* 控制条：三段式布局（进度条 → 时间 → 控制按钮）
@@ -1604,7 +1413,7 @@ button:focus {
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-time {
   /* display:contents：自身不生成盒子，时间 / 按钮成为外层网格的直接子项 */
   display: contents !important;
-  color: rgba(236, 231, 249, 0.78) !important;
+  color: var(--text-secondary) !important;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1642,9 +1451,9 @@ button:focus {
   height: 32px !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: 1px solid rgba(199, 112, 240, 0.2) !important;
+  border: 1px solid var(--accent-line) !important;
   border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: var(--surface-tint) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
   opacity: 1 !important;
   cursor: pointer !important;
@@ -1670,29 +1479,29 @@ button:focus {
 }
 
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon path {
-  fill: rgba(240, 236, 250, 0.85) !important;
+  fill: var(--text-primary) !important;
   transition: fill 0.2s ease;
 }
 
-/* 悬停：紫色微光（不用 transform，避免覆盖 forward 图标自带的 180° 翻转） */
+/* 悬停：强调色微光（不用 transform，避免覆盖 forward 图标自带的 180° 翻转） */
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon:hover,
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap:hover {
-  background: rgba(199, 112, 240, 0.2) !important;
-  border-color: rgba(199, 112, 240, 0.55) !important;
-  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: var(--accent-soft) !important;
+  border-color: var(--accent-line) !important;
+  box-shadow: 0 6px 16px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon:hover path {
-  fill: #ffffff !important;
+  fill: var(--text-primary) !important;
 }
 
-/* 播放键：主按钮，实心紫色圆钮 */
+/* 播放键：主按钮，实心强调色圆钮 */
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play {
   width: 40px !important;
   height: 40px !important;
-  background: linear-gradient(145deg, #8b5cf6, #c770f0) !important;
-  border-color: rgba(255, 255, 255, 0.34) !important;
-  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 8px 20px var(--accent-glow), inset 0 1px 0 var(--shadow-inset);
 }
 
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play svg {
@@ -1701,7 +1510,7 @@ button:focus {
 }
 
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play path {
-  fill: #ffffff !important;
+  fill: var(--accent-contrast) !important;
 }
 
 /* APlayer 只切换「唱片上那个按钮」的图标，控制栏播放键的图标不会变，
@@ -1723,7 +1532,7 @@ button:focus {
   height: 15px;
   margin-top: -7.5px;
   border-radius: 1.5px;
-  background: #ffffff;
+  background: var(--bg-primary);
 }
 
 .mp-is-playing .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::before,
@@ -1738,7 +1547,7 @@ button:focus {
   margin-left: 2px;
 }
 
-/* 进度条：独占第一行、铺满整宽（内凹银色轨道 + 紫色已播） */
+/* 进度条：独占第一行、铺满整宽（内凹细轨 + 强调色已播） */
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap {
   grid-row: 1;
   grid-column: 1 / -1;
@@ -1750,20 +1559,20 @@ button:focus {
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar {
   height: 4px !important;
   border-radius: 2px !important;
-  background: rgba(255, 255, 255, 0.14) !important;
+  background: var(--surface-tint) !important;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-loaded {
   height: 4px !important;
   border-radius: 2px !important;
-  background: rgba(255, 255, 255, 0.26) !important;
+  background: var(--surface-tint-strong) !important;
 }
 
 .mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-played {
   height: 4px !important;
   border-radius: 2px !important;
-  background: linear-gradient(90deg, #8b5cf6, #c770f0) !important;
+  background: var(--accent) !important;
 }
 
 /* 进度圆点：常显（APlayer 默认只在悬停时 scale(1)），并按 4px 细轨重新对中 */
@@ -1775,8 +1584,8 @@ button:focus {
   margin-top: -6px !important;
   margin-right: -6px !important;
   transform: scale(1) !important;
-  background: linear-gradient(180deg, #ffffff, #cfc3e4) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(199, 112, 240, 0.16);
+  background: var(--accent-contrast) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), 0 0 0 4px var(--accent-glow);
 }
 
 /* 音量滑块：悬停音量键时从按钮「正上方」弹出（沿用 APlayer 的交互，只重做外观与层级）
@@ -1806,9 +1615,9 @@ button:focus {
   height: 108px !important;
   margin: 0 0 10px !important;
   padding: 0 !important;
-  border: 1px solid rgba(199, 112, 240, 0.42) !important;
+  border: 1px solid var(--accent-line) !important;
   border-radius: 16px !important;
-  background: linear-gradient(180deg, rgba(32, 22, 48, 0.97), rgba(11, 7, 19, 0.98)) !important;
+  background: linear-gradient(180deg, var(--surface-glass-strong), var(--surface-glass-strong)) !important;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px) saturate(1.2);
   -webkit-backdrop-filter: blur(10px) saturate(1.2);
@@ -1839,7 +1648,7 @@ button:focus {
   width: 6px !important;
   height: 80px !important;
   border-radius: 3px !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: var(--surface-tint) !important;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
   overflow: hidden !important;
 }
@@ -1851,8 +1660,8 @@ button:focus {
   width: 100% !important;
   border-radius: 3px !important;
   /* 必须 !important：APlayer 会把主题色写成元素上的行内 background */
-  background: linear-gradient(180deg, #c770f0, #7c3aed) !important;
-  box-shadow: 0 0 10px rgba(199, 112, 240, 0.55);
+  background: var(--accent) !important;
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 /* 歌词：半透明玻璃浮层（上下渐隐色块跟浮层底色对齐） */
@@ -1861,38 +1670,38 @@ button:focus {
   height: 44px !important;
   margin: 0 0 10px !important;
   text-shadow: none !important;
-  background: rgba(10, 6, 18, 0.42);
+  background: var(--surface-glass);
   border-radius: 10px;
-  box-shadow: inset 0 0 0 1px rgba(199, 112, 240, 0.14);
+  box-shadow: inset 0 0 0 1px var(--accent-glow);
 }
 
 .mp-aplayer .aplayer-lrc:before {
-  background: linear-gradient(180deg, rgba(12, 8, 22, 0.9) 0%, rgba(12, 8, 22, 0) 100%) !important;
+  background: linear-gradient(180deg, var(--surface-glass-strong) 0%, var(--overlay-fade) 100%) !important;
 }
 
 .mp-aplayer .aplayer-lrc:after {
-  background: linear-gradient(180deg, rgba(12, 8, 22, 0) 0%, rgba(12, 8, 22, 0.9) 100%) !important;
+  background: linear-gradient(180deg, var(--overlay-fade) 0%, var(--surface-glass-strong) 100%) !important;
 }
 
 .mp-aplayer .aplayer-lrc p {
   height: 22px !important;
   font-size: 13px !important;
   line-height: 22px !important;
-  color: rgba(233, 228, 245, 0.45) !important;
+  color: var(--text-tertiary) !important;
 }
 
 .mp-aplayer .aplayer-lrc p.aplayer-lrc-current {
-  color: #d8b4fe !important;
-  text-shadow: 0 0 12px rgba(199, 112, 240, 0.5) !important;
+  color: var(--accent) !important;
+  text-shadow: 0 0 12px var(--accent-glow) !important;
 }
 
-/* 歌单：跟台面同色的抽屉，选中项左侧一条紫色指示条 */
+/* 歌单：跟台面同色的抽屉，选中项左侧一条强调色指示条 */
 .mp-aplayer .aplayer-list {
   width: 100%;
   margin-top: 10px;
-  border-top: 1px solid rgba(199, 112, 240, 0.18) !important;
+  border-top: 1px solid var(--accent-line) !important;
   border-radius: 12px;
-  background: rgba(9, 6, 16, 0.5);
+  background: var(--surface-glass);
 }
 
 /* 收起状态（APlayer 只把 max-height 压到 0，border 仍会画出 1px 线）：
@@ -1904,9 +1713,9 @@ button:focus {
 
 .mp-aplayer .aplayer-list ol {
   border-radius: 12px;
-  /* 歌单滚动条：细银色（APlayer 默认是白色 #eee，放在深色抽屉里很突兀） */
+  /* 歌单滚动条：细银灰（APlayer 默认是白色 #eee，放在抽屉里很突兀） */
   scrollbar-width: thin;
-  scrollbar-color: rgba(199, 112, 240, 0.4) rgba(255, 255, 255, 0.06);
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .mp-aplayer .aplayer-list ol::-webkit-scrollbar {
@@ -1915,45 +1724,45 @@ button:focus {
 
 .mp-aplayer .aplayer-list ol::-webkit-scrollbar-thumb {
   border-radius: 3px;
-  background-color: rgba(199, 112, 240, 0.38) !important;
+  background-color: var(--scrollbar-thumb) !important;
 }
 
 .mp-aplayer .aplayer-list ol::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(199, 112, 240, 0.62) !important;
+  background-color: var(--scrollbar-thumb-hover) !important;
 }
 
 .mp-aplayer .aplayer-list ol li {
   height: 34px !important;
   line-height: 34px !important;
-  color: rgba(233, 228, 245, 0.82) !important;
-  border-top: 1px solid rgba(199, 112, 240, 0.1) !important;
+  color: var(--text-primary) !important;
+  border-top: 1px solid var(--accent-line) !important;
 }
 
 .mp-aplayer .aplayer-list ol li .aplayer-list-index,
 .mp-aplayer .aplayer-list ol li .aplayer-list-author {
-  color: rgba(233, 228, 245, 0.55) !important;
+  color: var(--text-secondary) !important;
 }
 
 .mp-aplayer .aplayer-list ol li.aplayer-list-light {
-  background: rgba(199, 112, 240, 0.16) !important;
-  box-shadow: inset 3px 0 0 #c770f0;
+  background: var(--accent-soft) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .mp-aplayer .aplayer-list ol li:hover {
-  background: rgba(199, 112, 240, 0.12) !important;
+  background: var(--accent-soft) !important;
 }
 
 .mp-aplayer .aplayer-notice {
-  color: #f4efff !important;
-  background-color: rgba(83, 43, 133, 0.94) !important;
+  color: var(--text-primary) !important;
+  background-color: var(--surface-glass-strong) !important;
 }
 
 .mp-aplayer .aplayer-miniswitcher {
-  background: rgba(30, 18, 48, 0.96) !important;
+  background: var(--surface-glass-strong) !important;
 }
 
 .mp-aplayer .aplayer-miniswitcher .aplayer-icon path {
-  fill: rgba(199, 112, 240, 0.85) !important;
+  fill: var(--accent) !important;
 }
 
 /* ---------- 移动端：贴边放宽，避免遮挡内容 ---------- */

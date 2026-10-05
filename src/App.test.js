@@ -32,9 +32,15 @@ describe("App", () => {
     expect(screen.getByText(/Hi There/)).toBeInTheDocument();
     expect(screen.getByText(/I'M/i)).toHaveTextContent("SHASHA");
 
-    // 顶部导航（首页路由）
-    expect(screen.getAllByText("首页").length).toBeGreaterThan(0);
+    // 顶部导航（极简 Header：英文主标识 + 中文副标识）
+    expect(screen.getAllByText("作品").length).toBeGreaterThan(0);
     expect(screen.getAllByText("联系").length).toBeGreaterThan(0);
+
+    // 品牌区（莎莎 / Batyr）
+    expect(screen.getByText("Batyr")).toBeInTheDocument();
+
+    // 日夜切换按钮常驻在 Header 里
+    expect(screen.getAllByRole("switch").length).toBeGreaterThan(0);
 
     // 页脚署名
     expect(
