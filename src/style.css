@@ -1657,6 +1657,22 @@ button:focus {
 
 .mp-aplayer .aplayer .aplayer-list ol {
   border-radius: 12px;
+  /* 歌单滚动条：细银色（APlayer 默认是白色 #eee，放在深色抽屉里很突兀） */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(199, 112, 240, 0.4) rgba(255, 255, 255, 0.06);
+}
+
+.mp-aplayer .aplayer .aplayer-list ol::-webkit-scrollbar {
+  width: 5px;
+}
+
+.mp-aplayer .aplayer .aplayer-list ol::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background-color: rgba(199, 112, 240, 0.38) !important;
+}
+
+.mp-aplayer .aplayer .aplayer-list ol::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(199, 112, 240, 0.62) !important;
 }
 
 .mp-aplayer .aplayer .aplayer-list ol li {
