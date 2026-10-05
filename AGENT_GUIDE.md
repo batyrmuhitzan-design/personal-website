@@ -243,6 +243,11 @@ bash deploy.sh --no-rollback          # 失败不回滚（排障用）
 
 服务器模式执行链路：**预检+备份现镜像 → `git fetch` + `git reset --hard origin/master` → `docker compose build` → `docker compose up -d` → 容器 health + `/healthz` + `/music/api/health` → 成功打印摘要 / 失败自动回滚**。
 
+> 实测耗时（2026-10-06）：`docker compose build` 在这台 842MB 内存的机器上约 **7 分钟**
+> （`npm run build` 阶段完全靠 swap 撑着），整条链路约 8~10 分钟。
+> 日志长时间停在 `#20 ... npm run build` 属正常现象，**别误判为卡死**；
+> `--timeout` 只作用于健康检查等待，不会掐断构建。
+
 本地模式的四道保护：
 
 1. 工作区有未提交改动 → 默认**拒绝部署**（避免“以为上线了其实线上还是旧代码”）；
