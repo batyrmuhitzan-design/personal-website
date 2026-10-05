@@ -23,6 +23,9 @@ COPY . .
 # GENERATE_SOURCEMAP=false：不在镜像里输出 sourcemap，进一步减小体积
 ENV CI=true
 ENV GENERATE_SOURCEMAP=false
+# 842MB 小内存服务器：给 Node 构建阶段加大堆上限，避免 framer-motion + Tailwind 后
+# terser 压缩时 JavaScript 堆溢出（宿主机有 2G swap 兜底，1G 堆是安全的）
+ENV NODE_OPTIONS=--max-old-space-size=1024
 RUN npm run build
 
 # ---------------------------- 运行阶段 ----------------------------
