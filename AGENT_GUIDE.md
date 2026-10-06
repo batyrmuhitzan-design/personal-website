@@ -335,3 +335,46 @@ Windows 控制台若是 GBK，中文可能显示成乱码，先 `chcp 65001` 即
 | `.editorconfig` | 约束编辑器默认行尾（源码 CRLF、脚本 LF） | ✅ |
 | `docker-compose.yml` / `Dockerfile` / `nginx.conf` | 站点编排、镜像、站点 Nginx（原有文件） | ✅ |
 | `music-api/` | 音乐解析服务（原有） | ✅ |
+| `src/theme/tokens.css` | 设计令牌：全站唯一色彩来源（HTML 黑白双主题） | ✅ |
+| `src/theme/ThemeContext.tsx` | 主题上下文：持久化 / 跟随系统 / 过渡窗口 | ✅ |
+| `src/components/Header.tsx` · `ThemeToggle.tsx` | 极简顶部导航 + 日夜切换（取代旧 `Navbar.js`） | ✅ |
+| `scripts/slim-server.sh` | 小内存服务器瘦身（默认只体检，`--apply` 才动手） | ✅ |
+
+---
+
+## 14. 前端主题系统（丝滑黑白双主题）
+
+一句话：**颜色只认 CSS 变量**，主题只改 `<html data-theme="light|dark">`。
+
+### 14.1 文件分工
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/theme/tokens.css` | 唯一色彩来源。核心五色（`--bg-primary` / `--text-primary` / `--text-secondary` / `--border-color` / `--card-bg`）+ 派生语义色 + 黑胶物件色 |
+| `src/theme/ThemeContext.tsx` | `ThemeProvider` / `useTheme`；localStorage 持久化（键 `shasha-theme`）、首次访问跟随系统、多标签页同步、换肤过渡窗口、尊重 `prefers-reduced-motion` |
+| `src/index.css` | 引入令牌、基底样式、`.theme-switching` 过渡窗口、`.monogram` 字章、`.focus-ring` 焦点兜底、选中态与滚动条 |
+| `public/index.html` | 内联防闪脚本：首帧之前写好 `data-theme`（与 `resolveInitialTheme()` 同逻辑） |
+| `src/components/Header.tsx` · `ThemeToggle.tsx` | 顶部导航（品牌字章 + 中英双语导航 + 滚动毛玻璃 + layoutId 下划线）与日月胶囊开关 |
+| `tailwind.config.js` | `surface / elevated / ink / hairline / accent` 语义色（值 = CSS 变量），新组件可继续用 Tailwind 写 |
+
+### 14.2 加新颜色 / 改配色
+
+1. 在 `tokens.css` 的 `:root,[data-theme="light"]` 与 `[data-theme="dark"]` 里**各加一份**同名变量（两个主题都要有，缺一个会在另一主题下回落成非法值）；
+2. 组件里只用 `var(--your-token)`；Tailwind 里想用就再往 `tailwind.config.js` 的 `colors` 加一行映射；
+3. 不要在任何组件里写死色值 —— 写死了就不会跟着换肤。
+
+### 14.3 三个坑（改之前先看）
+
+1. **过渡窗口**：换肤的「丝滑」靠 `<html class="theme-switching">`，它只在切换后的 600ms 内存在，并用 `!important` 覆盖全树的 `transition`。**不要在窗口期内依赖 CSS transition 做关键动画**（framer-motion 的逐帧内联动画不受影响，这也是切换按钮用 framer-motion 而不是 CSS 过渡的原因）。
+2. **老样式表**：`src/style.css` 是上游模板遗留 + 二改定制的混合体（1835 行），已经全量令牌化（207 处），但里面仍保留 `!important` 与 `rgba(0,0,0,x)` 阴影之类「与主题无关」的写法。**改它时优先复用令牌**，不要再引入紫色系（上游强调色 `#c770f0` 已统一映射到 `var(--accent)`）。
+3. **行尾**：`src/**` 是 CRLF（见 `.editorconfig`），`*.sh`/`*.mjs` 是 LF（见 `.gitattributes`）。用 Node 脚本批量改 `style.css` 时务必按文件原有行尾写回，否则会产生整文件 diff。
+
+### 14.4 验证
+
+```bash
+npm test -- --watchAll=false   # 8 套件 / 35 用例（含主题持久化、过渡窗口、切换不重挂载播放器）
+npm run build                  # 生产构建（CI=true 时 lint 警告会被当错误）
+# 构建产物自检：令牌与工具类是否真的进包
+grep -c -- '--bg-primary' build/static/css/*.css
+```
+
