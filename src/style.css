@@ -63,6 +63,8 @@ button:focus {
 }
 #tsparticles {
   position: fixed !important;
+  z-index: 0; /* 粒子只做背景层，绝不能盖到正文之上 */
+  pointer-events: none; /* 背景装饰不拦截鼠标，正文链接 / 按钮可正常点击 */
   background-repeat: no-repeat !important;
   background-size: cover !important;
   width: 100%;
@@ -75,7 +77,13 @@ button:focus {
 
 .home-section {
   position: relative;
-  z-index: -1;
+  /* ⚠️ 这里必须是 0，不能是 -1。
+     负 z-index 会让整个首页 Hero 落入根层叠上下文的「负层」，
+     绘制顺序排在 <body> 背景之前 —— 而 body 有 background-color（白底），
+     于是标题 / 简介 / 插图全被白底盖住 = 首页白屏，
+     只有 fixed 定位的 Header、音量播放器、自定义光标（正层级）还能看见。
+     首页内容之所以看起来「整块消失」，根因就在这一行。 */
+  z-index: 0;
   /* 首页背景：如需自定义大图，把图片放进 src/Assets/ 后取消下面这行注释并改路径 */
   background-position: top center;
   background-repeat: no-repeat;
@@ -84,6 +92,9 @@ button:focus {
 }
 
 .home-content {
+  /* 显式抬到粒子背景（#tsparticles，z-index:0）之上，保证正文永远可见 */
+  position: relative;
+  z-index: 1;
   padding: 9rem 0 2rem !important;
   color: var(--text-primary);
   text-align: left;
@@ -171,6 +182,9 @@ button:focus {
 
 .home-social-icons {
   position: relative !important;
+  /* 建一个局部层叠上下文，把 ::before 的 z-index:-1 关在图标内部；
+     否则它会逃逸到根层叠上下文、被 body 背景盖住（光晕失效）。 */
+  z-index: 0 !important;
   display: inline-block !important;
   width: 40px !important;
   height: 40px !important;
@@ -1056,7 +1070,25 @@ button:focus {
   inset: 0;
   border-radius: 50%;
   pointer-events: none;
+  /* 纹路与刻痕亮弧都只画在「外圈」：中心 30% 留给封面（与下面 radial 那层的挖空一致），
+     否则扇形亮弧会横跨封面中央，看着像一道划痕 */
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 30%, #000 30.5%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 30%, #000 30.5%);
   background-image:
+    /* 1) 随唱片一起旋转的「刻痕亮弧」。
+       同心细纹（下面那层）在 144px 的尺寸上几乎无法感知运动，
+       所以这里额外叠一道「不对称」的扇形高光：一宽一窄两条弧
+       （24° / 146°），只要唱片在转，肉眼立刻看得出来；
+       animation-play-state: paused 时它也一样冻结，不会误导「正在播放」。
+       弧形只到唱片外围，中心 30% 依然留给封面（与下面两层一致）。 */
+    conic-gradient(
+      from 0deg at 50% 50%,
+      var(--overlay-fade) 0deg 16deg,
+      var(--vinyl-mark) 24deg,
+      var(--overlay-fade) 32deg 138deg,
+      var(--vinyl-mark) 146deg,
+      var(--overlay-fade) 152deg 360deg
+    ),
     repeating-radial-gradient(
       circle at 50% 50%,
       var(--vinyl-groove-light) 0 1px,
@@ -1821,13 +1853,32 @@ button:focus {
   }
 }
 
-/* 尊重系统「减弱动态效果」：停掉旋转与唱针过渡（播放逻辑不受影响） */
+/* --------------------------------------------------------------------------
+   关于「系统减弱动态效果」的取舍（重要：别随手改回 animation: none）
+   --------------------------------------------------------------------------
+   实测：站长这台 Windows 的「动画效果」是关的
+   （SPI_GETCLIENTAREAANIMATION=False、注册表 MinAnimate=0），
+   Chrome 于是上报 prefers-reduced-motion: reduce。
+   原实现直接 animation: none !important，结果：
+     · .aplayer-pic 的 animation-name 被重置成 none、duration 变 0s
+       → 黑胶唱片永远不转（探针实测 getAnimations() = 0）
+     · 中心按钮的反向自转、唱针起落一起失效 → 唱机成了一张静态图
+   而「唱片在转」正是播放器唯一的「正在播放」视觉信号，不是可省的装饰，
+   所以这里改为跟随站内开关 --motion-play-state（默认 running = 常开；
+   定义与完整说明见 src/index.css「站内装饰性动效总开关」）。
+   想恢复「严格跟随系统」，只改 index.css 里那一个变量即可。
+   -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .mp-aplayer .aplayer-pic,
-  .mp-aplayer .aplayer-pic .aplayer-button {
-    animation: none !important;
+  /* 只覆盖「正在播放」这几种情态：暂停时该规则不匹配，
+     唱片依然由上面的 .aplayer-pic { animation-play-state: paused } 冻结 */
+  .mp-is-playing .mp-aplayer .aplayer-pic,
+  .mp-is-playing .mp-aplayer .aplayer-pic .aplayer-button,
+  .mp-panel:has(.aplayer-button.aplayer-pause) .aplayer .aplayer-pic,
+  .mp-panel:has(.aplayer-button.aplayer-pause) .aplayer .aplayer-pic .aplayer-button {
+    animation-play-state: var(--motion-play-state, running) !important;
   }
 
+  /* 唱针起落：系统要求减弱时保持「瞬间到位」，不做 0.7s 缓动 */
   .mp-stylus-arm {
     transition: none;
   }

@@ -29,8 +29,11 @@ describe("App", () => {
     render(<App />);
 
     // Hero 区域
+    // 注意限定选择器：技能展示区里也有三条「i'm a」，/I'M/i 全局匹配会命中多个元素
     expect(screen.getByText(/Hi There/)).toBeInTheDocument();
-    expect(screen.getByText(/I'M/i)).toHaveTextContent("SHASHA");
+    expect(
+      screen.getByText(/I'M/i, { selector: "h1.heading-name" })
+    ).toHaveTextContent("SHASHA");
 
     // 顶部导航（极简 Header：英文主标识 + 中文副标识）
     expect(screen.getAllByText("作品").length).toBeGreaterThan(0);

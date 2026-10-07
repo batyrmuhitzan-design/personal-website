@@ -20,7 +20,8 @@ import CustomCursor from "./components/CustomCursor";
 import { ThemeProvider } from "./theme/ThemeContext";
 import "./style.css";
 import "./App.css";
-import "bootstrap/dist/css/bootstrap.min.css";
+/* Bootstrap 的 CSS 已移到 src/index.js 的第一行（必须先于自有样式加载，
+   否则它的 body 白底会把换肤变量盖掉，详见 index.js 顶部注释）。 */
 
 function App() {
   // load = true：首屏遮罩在场（页面锁定、Lenis 尚未接管）

@@ -17,29 +17,31 @@ import {
 
 /**
  * 技术栈标签：想换内容只需增删这个数组
- * name = 展示名称，Icon = react-icons 组件，color = 品牌色
+ * name = 展示名称，Icon = react-icons 组件
+ * 图标统一继承站点颜色（.tech-icons 的 currentColor → 黑白灰令牌），
+ * 不再使用各家品牌色，避免破坏极简单色系统。
  */
 const STACK = [
-  { name: "React", Icon: SiReact, color: "#61dafb" },
-  { name: "TypeScript", Icon: SiTypescript, color: "#3178c6" },
-  { name: "FastAPI", Icon: SiFastapi, color: "#009688" },
-  { name: "Python", Icon: SiPython, color: "#3776ab" },
-  { name: "Docker", Icon: SiDocker, color: "#2496ed" },
-  { name: "PostgreSQL", Icon: SiPostgresql, color: "#4169e1" },
-  { name: "C++", Icon: SiCplusplus, color: "#00599c" },
-  { name: "Node.js", Icon: SiNodedotjs, color: "#5fa04e" },
-  { name: "JavaScript", Icon: SiJavascript, color: "#f7df1e" },
-  { name: "Redis", Icon: SiRedis, color: "#dc382d" },
-  { name: "Nginx", Icon: SiNginx, color: "#009639" },
-  { name: "Git", Icon: SiGit, color: "#f05032" },
+  { name: "React", Icon: SiReact },
+  { name: "TypeScript", Icon: SiTypescript },
+  { name: "FastAPI", Icon: SiFastapi },
+  { name: "Python", Icon: SiPython },
+  { name: "Docker", Icon: SiDocker },
+  { name: "PostgreSQL", Icon: SiPostgresql },
+  { name: "C++", Icon: SiCplusplus },
+  { name: "Node.js", Icon: SiNodedotjs },
+  { name: "JavaScript", Icon: SiJavascript },
+  { name: "Redis", Icon: SiRedis },
+  { name: "Nginx", Icon: SiNginx },
+  { name: "Git", Icon: SiGit },
 ];
 
 function Techstack() {
   return (
     <Row className="tech-grid" style={{ justifyContent: "center", paddingBottom: "50px" }}>
-      {STACK.map(({ name, Icon, color }) => (
+      {STACK.map(({ name, Icon }) => (
         <Col xs={4} md={2} className="tech-icons" key={name} title={name}>
-          <Icon style={{ color: color }} aria-hidden="true" />
+          <Icon aria-hidden="true" />
           <div className="tech-icons-text">{name}</div>
         </Col>
       ))}

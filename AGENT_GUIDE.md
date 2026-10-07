@@ -366,8 +366,9 @@ Windows 控制台若是 GBK，中文可能显示成乱码，先 `chcp 65001` 即
 ### 14.3 三个坑（改之前先看）
 
 1. **过渡窗口**：换肤的「丝滑」靠 `<html class="theme-switching">`，它只在切换后的 600ms 内存在，并用 `!important` 覆盖全树的 `transition`。**不要在窗口期内依赖 CSS transition 做关键动画**（framer-motion 的逐帧内联动画不受影响，这也是切换按钮用 framer-motion 而不是 CSS 过渡的原因）。
-2. **老样式表**：`src/style.css` 是上游模板遗留 + 二改定制的混合体（1835 行），已经全量令牌化（207 处），但里面仍保留 `!important` 与 `rgba(0,0,0,x)` 阴影之类「与主题无关」的写法。**改它时优先复用令牌**，不要再引入紫色系（上游强调色 `#c770f0` 已统一映射到 `var(--accent)`）。
-3. **行尾**：`src/**` 是 CRLF（见 `.editorconfig`），`*.sh`/`*.mjs` 是 LF（见 `.gitattributes`）。用 Node 脚本批量改 `style.css` 时务必按文件原有行尾写回，否则会产生整文件 diff。
+2. **老样式表**：`src/style.css` 是上游模板遗留 + 二改定制的混合体（1835 行），已经全量令牌化（207 处），但里面仍保留 `!important` 与 `rgba(0,0,0,x)` 阴影之类「与主题无关」的写法。**改它时优先复用令牌**，不要再引入紫色系（上游强调色 `#c770f0` 已统一映射到 `var(--accent)`；并在「全面黑白化」中把 `src/Assets/**/*.svg`、`public/favicon.svg`、`public/og-cover.svg`、MusicPlayer 的 APlayer 主题色与 `manifest.json` 的 `theme_color` 也全部改成灰阶）。
+3. **首页区块的层叠（白屏元凶）**：`.home-section` 的 `z-index` 必须是 `0`，**绝不能是负数** —— 负值会把整个 Hero 丢进根层叠上下文的「负层」，绘制顺序排在 `<body>` 背景之前，于是正文被 body 的 `background-color` 整块盖住 = **首页白屏**（只有 `fixed` 的 Header / 音乐播放器 / 自定义光标还看得见）。配套约定：`#tsparticles` 固定为 `z-index:0; pointer-events:none`（粒子只做背景、不拦截点击），`.home-content` 抬到 `position:relative; z-index:1`。
+4. **行尾**：`src/**` 是 CRLF（见 `.editorconfig`），`*.sh`/`*.mjs` 是 LF（见 `.gitattributes`）。用 Node 脚本批量改 `style.css` 时务必按文件原有行尾写回，否则会产生整文件 diff。
 
 ### 14.4 验证
 

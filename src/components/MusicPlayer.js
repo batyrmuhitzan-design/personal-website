@@ -39,7 +39,20 @@ const CONFIG = profile.musicPlayer || {};
 const PLATFORMS = Array.isArray(CONFIG.platforms) ? CONFIG.platforms : [];
 const API_BASE = (process.env.REACT_APP_MUSIC_API || CONFIG.apiBase || "/music/api").replace(/\/+$/, "");
 const STORAGE_KEY = "shasha-music-player";
-const THEME_COLOR = "#c770f0";
+/**
+ * APlayer 主题色：跟随站点「黑白灰」令牌（--accent），不再写死紫色。
+ * APlayer 会把 theme 写成部分控件的行内样式（进度条 / 缩略点 / 按钮），
+ * 所以这里取当前主题下「与背景对立的那一极」：
+ *   浅色主题 → 纯黑 #111111；深色主题 → 纯白 #ffffff。
+ */
+function readThemeColor() {
+  if (typeof window === "undefined" || !window.getComputedStyle) return "#111111";
+  const value = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue("--accent")
+    .trim();
+  return value || "#111111";
+}
 /** 同一首歌最多尝试几次（代理 → 重新解析），超过就交给 APlayer 自动跳过 */
 const MAX_ATTEMPTS = 2;
 
@@ -227,7 +240,7 @@ function MusicPlayer() {
         url: song.url,
         cover: song.pic || undefined,
         lrc: song.lrc || "",
-        theme: THEME_COLOR,
+        theme: readThemeColor(),
         // 以下几个是自定义字段，播放失败重试时要用（APlayer 会原样保留）
         id: song.id || "",
         origin: song.origin || "",
@@ -304,7 +317,7 @@ function MusicPlayer() {
     const player = new APlayer({
       container: containerEl,
       audio: [],
-      theme: THEME_COLOR,
+      theme: readThemeColor(),
       lrcType: 3, // 3 = 异步拉取歌词地址（这里指向同源的 /music/api/lrc）
       autoplay: false,
       mutex: true,

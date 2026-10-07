@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="莎莎 Shasha">
   <defs>
     <linearGradient id="faviconAc" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#d18bf5" />
-      <stop offset="100%" stop-color="#6f42c1" />
+      <stop offset="0%" stop-color="#f5f5f5" />
+      <stop offset="100%" stop-color="#8a8a8a" />
     </linearGradient>
   </defs>
   <rect width="48" height="48" rx="12" fill="url(#faviconAc)" />
   <text x="24" y="25" text-anchor="middle" dominant-baseline="central"
     font-family="'PT Mono', Consolas, monospace" font-size="26" font-weight="700"
-    fill="#150a20">S</text>
+    fill="#141414">S</text>
 </svg>

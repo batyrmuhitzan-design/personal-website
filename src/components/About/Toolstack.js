@@ -8,20 +8,21 @@ import {
   SiLinux,
 } from "react-icons/si";
 
+/** 工具栈标签：图标统一继承站点颜色（黑白灰令牌），不再使用品牌色 */
 const TOOLS = [
-  { name: "VS Code", Icon: SiVisualstudiocode, color: "#22a6f2" },
-  { name: "Docker", Icon: SiDocker, color: "#2496ed" },
-  { name: "Git", Icon: SiGit, color: "#f05032" },
-  { name: "Postman", Icon: SiPostman, color: "#ff6c37" },
-  { name: "Linux", Icon: SiLinux, color: "#f6c000" },
+  { name: "VS Code", Icon: SiVisualstudiocode },
+  { name: "Docker", Icon: SiDocker },
+  { name: "Git", Icon: SiGit },
+  { name: "Postman", Icon: SiPostman },
+  { name: "Linux", Icon: SiLinux },
 ];
 
 function Toolstack() {
   return (
     <Row className="tech-grid" style={{ justifyContent: "center", paddingBottom: "50px" }}>
-      {TOOLS.map(({ name, Icon, color }) => (
+      {TOOLS.map(({ name, Icon }) => (
         <Col xs={4} md={2} className="tech-icons" key={name} title={name}>
-          <Icon style={{ color: color }} aria-hidden="true" />
+          <Icon aria-hidden="true" />
           <div className="tech-icons-text">{name}</div>
         </Col>
       ))}

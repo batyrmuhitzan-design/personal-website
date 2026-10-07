@@ -5,6 +5,7 @@ import Particle from "../Particle";
 import Contact from "../Contact/Contact";
 import Home2 from "./Home2";
 import Type from "./Type";
+import SkillSection from "../Skills/SkillSection";
 import profile from "../../portfolio.config";
 
 function Home() {
@@ -44,6 +45,8 @@ function Home() {
         </Container>
       </Container>
       <Home2 />
+      {/* 技能展示区：巨型重复文字背景（随滚动横向掠过）+ 编号条目遮罩浮现 */}
+      <SkillSection />
       <Contact />
     </section>
   );

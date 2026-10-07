@@ -6,11 +6,13 @@ import CustomCursor from "./CustomCursor";
 /**
  * 自定义光标测试（jsdom）
  * ------------------------------------------------------------------
- * 光标的两条核心路径里，弹簧动画（外圈跟随、hover 放大）依赖真实渲染帧，
- * 这里只覆盖确定性的部分，避免测试随机失败：
+ * 光标的两条核心路径里，弹簧动画（小人跟随、hover 放大）与 CSS 动画
+ * （眨眼 / 呼吸 / 挥手）依赖真实渲染帧，这里只覆盖确定性的部分，
+ * 避免测试随机失败：
  *   1) 非「精确指针」设备：什么都不渲染，也不改 <html>、不注入样式；
- *   2) 精确指针设备：两个光标元素挂在 body 下、<html> 打上标记类、注入隐藏原生光标的样式；
- *   3) 鼠标移动时内点（不吃弹簧）立即跟到坐标上；
+ *   2) 精确指针设备：两个光标元素（卡通小人 + 小箭头）挂在 body 下、
+ *      <html> 打上标记类、注入隐藏原生光标与卡通动画的样式；
+ *   3) 鼠标移动时小箭头（不吃弹簧）立即跟到坐标上；
  *   4) 卸载后标记类与注入的样式都被清理干净。
  */
 
@@ -54,7 +56,7 @@ describe("CustomCursor", () => {
     restore();
   });
 
-  test("精确指针设备：挂载圆环与内点、注入样式，移动鼠标时内点跟手", async () => {
+  test("精确指针设备：挂载卡通小人与小箭头、注入样式，移动鼠标时箭头跟手", async () => {
     const restore = mockPointerDevice(true);
     const { unmount } = render(<CustomCursor />);
     await nextFrame();
@@ -71,10 +73,10 @@ describe("CustomCursor", () => {
     });
     await nextFrame();
 
-    // 外圈在前、内点在后；内点不经过弹簧，坐标应当直接命中
-    const dotStyle = cursors[1].getAttribute("style") || "";
-    expect(dotStyle).toContain("translateX(40px)");
-    expect(dotStyle).toContain("translateY(50px)");
+    // 卡通小人在前、小箭头在后；箭头不经过弹簧，坐标应当直接命中
+    const pointerStyle = cursors[1].getAttribute("style") || "";
+    expect(pointerStyle).toContain("translateX(40px)");
+    expect(pointerStyle).toContain("translateY(50px)");
 
     unmount();
     expect(document.documentElement.classList.contains(ACTIVE_CLASS)).toBe(false);

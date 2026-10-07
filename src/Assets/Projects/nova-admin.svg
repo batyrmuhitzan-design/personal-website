@@ -2,18 +2,18 @@
   role="img" aria-label="Nova Admin 全栈管理后台">
   <defs>
     <linearGradient id="naBg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#121c33" />
-      <stop offset="100%" stop-color="#0a0718" />
+      <stop offset="0%" stop-color="#121212" />
+      <stop offset="100%" stop-color="#0a0a0a" />
     </linearGradient>
     <linearGradient id="naAc" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#61dafb" />
-      <stop offset="100%" stop-color="#3178c6" />
+      <stop offset="0%" stop-color="#d4d4d4" />
+      <stop offset="100%" stop-color="#8a8a8a" />
     </linearGradient>
   </defs>
 
   <rect width="800" height="450" fill="url(#naBg)" />
-  <circle cx="690" cy="90" r="180" fill="#61dafb" opacity="0.12" />
-  <circle cx="80" cy="400" r="140" fill="#3178c6" opacity="0.16" />
+  <circle cx="690" cy="90" r="180" fill="#d4d4d4" opacity="0.12" />
+  <circle cx="80" cy="400" r="140" fill="#8a8a8a" opacity="0.16" />
   <g stroke="#ffffff" stroke-opacity="0.045" stroke-width="1">
     <path d="M100 0V450M200 0V450M300 0V450M400 0V450M500 0V450M600 0V450M700 0V450" />
     <path d="M0 90H800M0 180H800M0 270H800M0 360H800" />
@@ -21,19 +21,19 @@
 
   <rect x="48" y="40" width="316" height="34" rx="17" fill="url(#naAc)" />
   <text x="68" y="63" font-family="'PT Mono', Consolas, monospace" font-size="17"
-    font-weight="600" fill="#0a1428">REACT · TYPESCRIPT · POSTGRESQL</text>
+    font-weight="600" fill="#0d0d0d">REACT · TYPESCRIPT · POSTGRESQL</text>
 
   <!-- 后台界面 -->
-  <rect x="48" y="102" width="704" height="222" rx="16" fill="#0d1424" stroke="#61dafb"
+  <rect x="48" y="102" width="704" height="222" rx="16" fill="#0d0d0d" stroke="#d4d4d4"
     stroke-opacity="0.45" />
   <rect x="48" y="102" width="704" height="34" rx="16" fill="#ffffff" fill-opacity="0.05" />
-  <circle cx="72" cy="119" r="5" fill="#ff5f57" />
-  <circle cx="88" cy="119" r="5" fill="#febc2e" />
-  <circle cx="104" cy="119" r="5" fill="#28c840" />
+  <circle cx="72" cy="119" r="5" fill="#6b6b6b" />
+  <circle cx="88" cy="119" r="5" fill="#8a8a8a" />
+  <circle cx="104" cy="119" r="5" fill="#b0b0b0" />
 
   <!-- 侧边栏 -->
   <rect x="66" y="152" width="118" height="152" rx="12" fill="#ffffff" fill-opacity="0.05" />
-  <g fill="#61dafb">
+  <g fill="#d4d4d4">
     <rect x="80" y="168" width="88" height="18" rx="9" opacity="0.75" />
     <rect x="80" y="196" width="66" height="10" rx="5" opacity="0.4" />
     <rect x="80" y="216" width="78" height="10" rx="5" opacity="0.3" />
@@ -44,24 +44,24 @@
   <!-- 数据卡片 -->
   <g>
     <rect x="202" y="152" width="150" height="62" rx="12" fill="#ffffff" fill-opacity="0.06" />
-    <rect x="218" y="170" width="52" height="10" rx="5" fill="#61dafb" opacity="0.6" />
+    <rect x="218" y="170" width="52" height="10" rx="5" fill="#d4d4d4" opacity="0.6" />
     <text x="218" y="202" font-family="'PT Mono', Consolas, monospace" font-size="24"
       font-weight="700" fill="#ffffff">1,284</text>
 
     <rect x="366" y="152" width="150" height="62" rx="12" fill="#ffffff" fill-opacity="0.06" />
-    <rect x="382" y="170" width="42" height="10" rx="5" fill="#3178c6" opacity="0.8" />
+    <rect x="382" y="170" width="42" height="10" rx="5" fill="#8a8a8a" opacity="0.8" />
     <text x="382" y="202" font-family="'PT Mono', Consolas, monospace" font-size="24"
       font-weight="700" fill="#ffffff">98.6%</text>
 
     <rect x="530" y="152" width="202" height="62" rx="12" fill="#ffffff" fill-opacity="0.06" />
-    <rect x="546" y="170" width="60" height="10" rx="5" fill="#c770f0" opacity="0.7" />
+    <rect x="546" y="170" width="60" height="10" rx="5" fill="#e5e5e5" opacity="0.7" />
     <text x="546" y="202" font-family="'PT Mono', Consolas, monospace" font-size="24"
       font-weight="700" fill="#ffffff">RBAC ok</text>
   </g>
 
   <!-- 图表 -->
   <rect x="202" y="228" width="530" height="76" rx="12" fill="#ffffff" fill-opacity="0.04" />
-  <g fill="#61dafb">
+  <g fill="#d4d4d4">
     <rect x="230" y="262" width="26" height="30" rx="6" opacity="0.55" />
     <rect x="272" y="248" width="26" height="44" rx="6" opacity="0.75" />
     <rect x="314" y="270" width="26" height="22" rx="6" opacity="0.45" />
@@ -70,11 +70,11 @@
     <rect x="440" y="234" width="26" height="58" rx="6" opacity="0.8" />
     <rect x="482" y="264" width="26" height="28" rx="6" opacity="0.5" />
   </g>
-  <path d="M236 276L278 258L320 268L362 246L404 262L446 240L488 256" stroke="#d18bf5"
+  <path d="M236 276L278 258L320 268L362 246L404 262L446 240L488 256" stroke="#f5f5f5"
     stroke-width="3" fill="none" stroke-linecap="round" />
 
   <text x="48" y="368" font-family="'PT Mono', Consolas, monospace" font-size="42"
     font-weight="700" fill="#ffffff">Nova Admin</text>
   <text x="48" y="406" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="22"
-    fill="#61dafb">全栈管理后台 · 权限、看板与审计日志</text>
+    fill="#d4d4d4">全栈管理后台 · 权限、看板与审计日志</text>
 </svg>

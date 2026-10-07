@@ -2,18 +2,18 @@
   role="img" aria-label="Quant Lab 策略回测引擎">
   <defs>
     <linearGradient id="qlBg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1a1626" />
-      <stop offset="100%" stop-color="#0a0718" />
+      <stop offset="0%" stop-color="#151515" />
+      <stop offset="100%" stop-color="#0a0a0a" />
     </linearGradient>
     <linearGradient id="qlAc" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#f7df1e" />
-      <stop offset="100%" stop-color="#c9a227" />
+      <stop offset="0%" stop-color="#e5e5e5" />
+      <stop offset="100%" stop-color="#b0b0b0" />
     </linearGradient>
   </defs>
 
   <rect width="800" height="450" fill="url(#qlBg)" />
-  <circle cx="700" cy="70" r="170" fill="#f7df1e" opacity="0.1" />
-  <circle cx="90" cy="410" r="140" fill="#00599c" opacity="0.18" />
+  <circle cx="700" cy="70" r="170" fill="#e5e5e5" opacity="0.1" />
+  <circle cx="90" cy="410" r="140" fill="#8a8a8a" opacity="0.18" />
   <g stroke="#ffffff" stroke-opacity="0.05" stroke-width="1">
     <path d="M100 0V450M200 0V450M300 0V450M400 0V450M500 0V450M600 0V450M700 0V450" />
     <path d="M0 90H800M0 180H800M0 270H800M0 360H800" />
@@ -21,10 +21,10 @@
 
   <rect x="48" y="40" width="232" height="34" rx="17" fill="url(#qlAc)" />
   <text x="68" y="63" font-family="'PT Mono', Consolas, monospace" font-size="17"
-    font-weight="600" fill="#241f05">C++ CORE · PYTHON API</text>
+    font-weight="600" fill="#1a1a1a">C++ CORE · PYTHON API</text>
 
   <!-- 图表框 -->
-  <rect x="48" y="102" width="704" height="222" rx="16" fill="#0f0d1c" stroke="#f7df1e"
+  <rect x="48" y="102" width="704" height="222" rx="16" fill="#0f0f0f" stroke="#e5e5e5"
     stroke-opacity="0.35" />
   <g stroke="#ffffff" stroke-opacity="0.06">
     <path d="M48 150H752M48 198H752M48 246H752M48 294H752" />
@@ -32,11 +32,11 @@
 
   <!-- K 线 -->
   <g>
-    <g stroke="#5fa04e" stroke-width="2">
+    <g stroke="#a3a3a3" stroke-width="2">
       <path d="M110 200V248" /><path d="M170 186V236" /><path d="M230 210V258" />
       <path d="M290 194V240" /><path d="M530 168V214" /><path d="M650 158V206" />
     </g>
-    <g fill="#5fa04e">
+    <g fill="#a3a3a3">
       <rect x="102" y="208" width="16" height="32" rx="3" />
       <rect x="162" y="194" width="16" height="34" rx="3" />
       <rect x="222" y="218" width="16" height="32" rx="3" />
@@ -44,11 +44,11 @@
       <rect x="522" y="176" width="16" height="30" rx="3" />
       <rect x="642" y="166" width="16" height="32" rx="3" />
     </g>
-    <g stroke="#ff7b72" stroke-width="2">
+    <g stroke="#9a9a9a" stroke-width="2">
       <path d="M350 202V244" /><path d="M410 216V262" /><path d="M470 206V250" />
       <path d="M590 186V232" /><path d="M710 190V236" />
     </g>
-    <g fill="#ff7b72">
+    <g fill="#9a9a9a">
       <rect x="342" y="210" width="16" height="26" rx="3" />
       <rect x="402" y="226" width="16" height="28" rx="3" />
       <rect x="462" y="214" width="16" height="28" rx="3" />
@@ -59,19 +59,19 @@
 
   <!-- 策略净值曲线 -->
   <path d="M78 268L138 250L198 256L258 232L318 240L378 214L438 222L498 190L558 176L618 150L678 138L738 122"
-    stroke="#f7df1e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="738" cy="122" r="6" fill="#f7df1e" />
+    stroke="#e5e5e5" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="738" cy="122" r="6" fill="#e5e5e5" />
 
   <!-- 指标卡片 -->
   <g font-family="'PT Mono', Consolas, monospace">
-    <rect x="78" y="292" width="200" height="18" rx="9" fill="#f7df1e" opacity="0.18" />
-    <text x="78" y="288" font-size="13" fill="#9d8ab8">annual return</text>
-    <text x="562" y="288" font-size="13" fill="#9d8ab8">max drawdown</text>
-    <text x="560" y="308" font-size="18" font-weight="700" fill="#ff7b72">-8.4%</text>
+    <rect x="78" y="292" width="200" height="18" rx="9" fill="#e5e5e5" opacity="0.18" />
+    <text x="78" y="288" font-size="13" fill="#9d9d9d">annual return</text>
+    <text x="562" y="288" font-size="13" fill="#9d9d9d">max drawdown</text>
+    <text x="560" y="308" font-size="18" font-weight="700" fill="#9a9a9a">-8.4%</text>
   </g>
 
   <text x="48" y="372" font-family="'PT Mono', Consolas, monospace" font-size="42"
     font-weight="700" fill="#ffffff">Quant Lab</text>
   <text x="48" y="410" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="22"
-    fill="#f7df1e">策略回测引擎 · C++ 内核 + Python 策略</text>
+    fill="#e5e5e5">策略回测引擎 · C++ 内核 + Python 策略</text>
 </svg>

@@ -3,29 +3,29 @@
   <title id="heroTitle">莎莎的技术栈：React、TypeScript、FastAPI、Docker</title>
   <defs>
     <linearGradient id="heroBg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1c1330" />
-      <stop offset="100%" stop-color="#0f0a1d" />
+      <stop offset="0%" stop-color="#171717" />
+      <stop offset="100%" stop-color="#0f0f0f" />
     </linearGradient>
     <radialGradient id="heroGlow" cx="50%" cy="46%" r="52%">
-      <stop offset="0%" stop-color="#c770f0" stop-opacity="0.42" />
-      <stop offset="100%" stop-color="#c770f0" stop-opacity="0" />
+      <stop offset="0%" stop-color="#e5e5e5" stop-opacity="0.42" />
+      <stop offset="100%" stop-color="#e5e5e5" stop-opacity="0" />
     </radialGradient>
   </defs>
 
   <circle cx="266" cy="222" r="205" fill="url(#heroGlow)" />
 
   <!-- 代码编辑器 -->
-  <rect x="34" y="26" width="452" height="300" rx="18" fill="url(#heroBg)" stroke="#c770f0"
+  <rect x="34" y="26" width="452" height="300" rx="18" fill="url(#heroBg)" stroke="#e5e5e5"
     stroke-opacity="0.45" />
   <rect x="34" y="26" width="452" height="42" rx="18" fill="#ffffff" fill-opacity="0.05" />
-  <circle cx="62" cy="47" r="6" fill="#ff5f57" />
-  <circle cx="82" cy="47" r="6" fill="#febc2e" />
-  <circle cx="102" cy="47" r="6" fill="#28c840" />
+  <circle cx="62" cy="47" r="6" fill="#6b6b6b" />
+  <circle cx="82" cy="47" r="6" fill="#8a8a8a" />
+  <circle cx="102" cy="47" r="6" fill="#b0b0b0" />
   <text x="132" y="53" font-family="'PT Mono', Consolas, monospace" font-size="15"
-    fill="#c9bde0">shasha.tsx</text>
+    fill="#c9c9c9">shasha.tsx</text>
 
   <!-- 行号 -->
-  <g font-family="'PT Mono', Consolas, monospace" font-size="12" fill="#6b5c8a">
+  <g font-family="'PT Mono', Consolas, monospace" font-size="12" fill="#6b6b6b">
     <text x="52" y="104">1</text>
     <text x="52" y="130">2</text>
     <text x="52" y="156">3</text>
@@ -38,45 +38,45 @@
 
   <!-- 代码行 -->
   <g>
-    <rect x="84" y="93" width="104" height="11" rx="5.5" fill="#c770f0" />
-    <rect x="196" y="93" width="118" height="11" rx="5.5" fill="#61dafb" opacity="0.85" />
-    <rect x="322" y="93" width="64" height="11" rx="5.5" fill="#8b949e" opacity="0.7" />
+    <rect x="84" y="93" width="104" height="11" rx="5.5" fill="#e5e5e5" />
+    <rect x="196" y="93" width="118" height="11" rx="5.5" fill="#d4d4d4" opacity="0.85" />
+    <rect x="322" y="93" width="64" height="11" rx="5.5" fill="#8b8b8b" opacity="0.7" />
 
-    <rect x="84" y="119" width="68" height="11" rx="5.5" fill="#ff7b72" opacity="0.85" />
-    <rect x="160" y="119" width="132" height="11" rx="5.5" fill="#f7df1e" opacity="0.75" />
+    <rect x="84" y="119" width="68" height="11" rx="5.5" fill="#9a9a9a" opacity="0.85" />
+    <rect x="160" y="119" width="132" height="11" rx="5.5" fill="#e5e5e5" opacity="0.75" />
 
-    <rect x="102" y="145" width="88" height="11" rx="5.5" fill="#c770f0" opacity="0.9" />
-    <rect x="198" y="145" width="150" height="11" rx="5.5" fill="#61dafb" opacity="0.6" />
+    <rect x="102" y="145" width="88" height="11" rx="5.5" fill="#e5e5e5" opacity="0.9" />
+    <rect x="198" y="145" width="150" height="11" rx="5.5" fill="#d4d4d4" opacity="0.6" />
 
-    <rect x="102" y="171" width="64" height="11" rx="5.5" fill="#8b949e" opacity="0.6" />
-    <rect x="174" y="171" width="170" height="11" rx="5.5" fill="#c9bde0" opacity="0.45" />
+    <rect x="102" y="171" width="64" height="11" rx="5.5" fill="#8b8b8b" opacity="0.6" />
+    <rect x="174" y="171" width="170" height="11" rx="5.5" fill="#c9c9c9" opacity="0.45" />
 
-    <rect x="102" y="197" width="112" height="11" rx="5.5" fill="#5fa04e" opacity="0.85" />
-    <rect x="222" y="197" width="96" height="11" rx="5.5" fill="#f7df1e" opacity="0.6" />
+    <rect x="102" y="197" width="112" height="11" rx="5.5" fill="#a3a3a3" opacity="0.85" />
+    <rect x="222" y="197" width="96" height="11" rx="5.5" fill="#e5e5e5" opacity="0.6" />
 
-    <rect x="84" y="223" width="72" height="11" rx="5.5" fill="#ff7b72" opacity="0.85" />
+    <rect x="84" y="223" width="72" height="11" rx="5.5" fill="#9a9a9a" opacity="0.85" />
 
-    <rect x="84" y="249" width="124" height="11" rx="5.5" fill="#c770f0" opacity="0.9" />
-    <rect x="216" y="249" width="88" height="11" rx="5.5" fill="#61dafb" opacity="0.7" />
-    <rect x="312" y="249" width="110" height="11" rx="5.5" fill="#8b949e" opacity="0.55" />
+    <rect x="84" y="249" width="124" height="11" rx="5.5" fill="#e5e5e5" opacity="0.9" />
+    <rect x="216" y="249" width="88" height="11" rx="5.5" fill="#d4d4d4" opacity="0.7" />
+    <rect x="312" y="249" width="110" height="11" rx="5.5" fill="#8b8b8b" opacity="0.55" />
 
-    <rect x="84" y="275" width="56" height="11" rx="5.5" fill="#c9bde0" opacity="0.4" />
+    <rect x="84" y="275" width="56" height="11" rx="5.5" fill="#c9c9c9" opacity="0.4" />
   </g>
 
   <!-- 终端窗口（与编辑器叠出层次） -->
-  <rect x="76" y="292" width="384" height="130" rx="16" fill="#0b0716" stroke="#c770f0"
+  <rect x="76" y="292" width="384" height="130" rx="16" fill="#0b0b0b" stroke="#e5e5e5"
     stroke-opacity="0.35" />
   <rect x="76" y="292" width="384" height="32" rx="16" fill="#ffffff" fill-opacity="0.05" />
   <text x="98" y="314" font-family="'PT Mono', Consolas, monospace" font-size="13"
-    fill="#8b949e">bash — shasha@dev</text>
+    fill="#8b8b8b">bash — shasha@dev</text>
   <text x="98" y="356" font-family="'PT Mono', Consolas, monospace" font-size="15"
-    fill="#28c840">$ npm run build</text>
+    fill="#b0b0b0">$ npm run build</text>
   <text x="98" y="382" font-family="'PT Mono', Consolas, monospace" font-size="15"
-    fill="#c9bde0">✔ build ok · 8881 → 80</text>
+    fill="#c9c9c9">✔ build ok · 8881 → 80</text>
   <text x="98" y="408" font-family="'PT Mono', Consolas, monospace" font-size="15"
-    fill="#61dafb">$ docker compose up -d</text>
+    fill="#d4d4d4">$ docker compose up -d</text>
 
   <!-- 底部技术栈标签 -->
   <text x="36" y="452" font-family="'PT Mono', Consolas, monospace" font-size="14"
-    fill="#c9bde0" opacity="0.85">React · TypeScript · FastAPI · Python · Docker · PostgreSQL</text>
+    fill="#c9c9c9" opacity="0.85">React · TypeScript · FastAPI · Python · Docker · PostgreSQL</text>
 </svg>

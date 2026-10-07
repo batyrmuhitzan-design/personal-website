@@ -21,9 +21,9 @@ const outFile = resolve(here, "../src/Assets/Shasha_Resume.pdf");
 const PAGE_W = 595;
 const PAGE_H = 842;
 const MARGIN = 56;
-const PURPLE = "0.78 0.44 0.94";
-const DARK = "0.10 0.06 0.16";
-const GREY = "0.38 0.36 0.42";
+const ACCENT = "0.067 0.067 0.067"; // #111111 —— 黑白灰强调色（与站点令牌一致）
+const DARK = "0.067 0.067 0.067"; // #111111 主文字
+const GREY = "0.4 0.4 0.4"; // 中性灰次要文字
 
 /** 转义 PDF 字符串的特殊字符 */
 const esc = (s) =>
@@ -48,7 +48,7 @@ const rect = (x, y, w, h, color) => {
 /** 内容定义：gap = 与上一行的垂直距离，rule 表示分隔线 */
 const rows = [
   { f: "F1", s: 24, t: "SHASHA", gap: 40 },
-  { f: "F2", s: 12, t: "Web Developer & Automation Specialist", gap: 22, c: PURPLE },
+  { f: "F2", s: 12, t: "Web Developer & Automation Specialist", gap: 22, c: ACCENT },
   {
     f: "F2",
     s: 9.5,
@@ -58,19 +58,19 @@ const rows = [
   },
   { rule: true, gap: 16 },
 
-  { f: "F1", s: 11.5, t: "PROFILE", gap: 26, c: PURPLE },
+  { f: "F1", s: 11.5, t: "PROFILE", gap: 26, c: ACCENT },
   { f: "F2", s: 10, t: "Full-stack web developer focused on automation engineering. I build React +", gap: 16 },
   { f: "F2", s: 10, t: "TypeScript front-ends and FastAPI / Python back-ends, then ship them with", gap: 13 },
   { f: "F2", s: 10, t: "Docker and Nginx. I like turning repetitive manual work into reliable,", gap: 13 },
   { f: "F2", s: 10, t: "scheduled pipelines.", gap: 13 },
 
-  { f: "F1", s: 11.5, t: "CORE SKILLS", gap: 24, c: PURPLE },
+  { f: "F1", s: 11.5, t: "CORE SKILLS", gap: 24, c: ACCENT },
   { f: "F2", s: 10, t: "Front-end ... React, TypeScript, JavaScript, Bootstrap, responsive UI", gap: 16 },
   { f: "F2", s: 10, t: "Back-end .... Python, FastAPI, Node.js, RESTful API, auth & RBAC", gap: 13 },
   { f: "F2", s: 10, t: "Database .... PostgreSQL, Redis, data cleaning & incremental sync", gap: 13 },
   { f: "F2", s: 10, t: "DevOps ...... Docker, Nginx, Linux, Git, CI/CD, shell automation", gap: 13 },
   { f: "F2", s: 10, t: "Other ....... C++ (performance oriented), scraping, automated testing", gap: 13 },
-  { f: "F1", s: 11.5, t: "EXPERIENCE", gap: 24, c: PURPLE },
+  { f: "F1", s: 11.5, t: "EXPERIENCE", gap: 24, c: ACCENT },
   { f: "F1", s: 10, t: "Full-stack Developer - Web platform / remote            2023 - Present", gap: 16 },
   { f: "F2", s: 10, t: "- Built and maintained the front-end architecture with React + TypeScript.", gap: 13 },
   { f: "F2", s: 10, t: "- Designed REST APIs and data models with FastAPI + PostgreSQL.", gap: 13 },
@@ -83,14 +83,14 @@ const rows = [
   { f: "F2", s: 10, t: "- Studied the full web delivery flow: UI, API, server deployment.", gap: 13 },
   { f: "F2", s: 10, t: "- Practised C++ and algorithm / performance fundamentals.", gap: 13 },
 
-  { f: "F1", s: 11.5, t: "SELECTED PROJECTS", gap: 24, c: PURPLE },
+  { f: "F1", s: 11.5, t: "SELECTED PROJECTS", gap: 24, c: ACCENT },
   { f: "F2", s: 10, t: "Automation Hub - task scheduling console (Python, FastAPI, Docker)", gap: 16 },
   { f: "F2", s: 10, t: "Nova Admin - full-stack admin system (React, TypeScript, PostgreSQL)", gap: 13 },
   { f: "F2", s: 10, t: "PipeFlow - data collection & cleaning pipeline (Python, Playwright)", gap: 13 },
   { f: "F2", s: 10, t: "DevOps Toolkit - one-command deploy scripts (Docker, Nginx, shell)", gap: 13 },
   { f: "F2", s: 10, t: "Quant Lab - backtest engine: C++ core with Python strategy layer", gap: 13 },
 
-  { f: "F1", s: 11.5, t: "EDUCATION", gap: 24, c: PURPLE },
+  { f: "F1", s: 11.5, t: "EDUCATION", gap: 24, c: ACCENT },
   { f: "F2", s: 10, t: "Bachelor degree, Computer Science related                 2016 - 2020", gap: 16 },
   {
     f: "F2",
@@ -109,7 +109,7 @@ rows.forEach((row) => {
     throw new Error("内容超出一页，请精简简历内容");
   }
   if (row.rule) {
-    rect(MARGIN, y, PAGE_W - MARGIN * 2, 1.2, PURPLE);
+    rect(MARGIN, y, PAGE_W - MARGIN * 2, 1.2, ACCENT);
   } else {
     text(row.f, row.s, MARGIN, y, row.t, row.c);
   }

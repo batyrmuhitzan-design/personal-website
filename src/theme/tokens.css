@@ -72,6 +72,10 @@
   --vinyl-groove-light: rgba(255, 255, 255, 0.72);
   --vinyl-groove-dark: rgba(0, 0, 0, 0.1);
   --vinyl-ring: rgba(17, 17, 17, 0.32);
+  /* 「刻痕亮弧」：随唱片一起旋转的不对称高光标记。
+     同心细纹在 144px 的尺寸上根本看不出在动，这道亮弧才是
+     「唱片转起来了」的可见信号（详见 src/style.css 里 .aplayer-pic::after） */
+  --vinyl-mark: rgba(17, 17, 17, 0.18);
   --vinyl-sheen: rgba(255, 255, 255, 0.95);
   --vinyl-sheen-soft: rgba(17, 17, 17, 0.05);
   --vinyl-hole: rgba(17, 17, 17, 0.86);
@@ -138,20 +142,22 @@
   --scrollbar-thumb-hover: rgba(245, 245, 245, 0.42);
   --scrollbar-track: #0a0a0a;
 
-  /* 3) 物件：经典黑色黑胶 + 冷光金属 */
-  --vinyl-1: rgba(8, 6, 12, 0.92);
-  --vinyl-2: rgba(30, 25, 40, 0.96);
-  --vinyl-3: rgba(6, 4, 10, 0.96);
+  /* 3) 物件：经典黑色黑胶 + 中性冷光金属（全部为纯灰阶，不带任何色相） */
+  --vinyl-1: rgba(14, 14, 14, 0.92);
+  --vinyl-2: rgba(32, 32, 32, 0.96);
+  --vinyl-3: rgba(8, 8, 8, 0.96);
   --vinyl-groove-light: rgba(255, 255, 255, 0.045);
   --vinyl-groove-dark: rgba(0, 0, 0, 0.05);
   --vinyl-ring: rgba(255, 255, 255, 0.12);
+  /* 「刻痕亮弧」：随唱片一起旋转的不对称高光标记（同浅色主题，见上方说明） */
+  --vinyl-mark: rgba(255, 255, 255, 0.22);
   --vinyl-sheen: rgba(255, 255, 255, 0.16);
   --vinyl-sheen-soft: rgba(255, 255, 255, 0.02);
-  --vinyl-hole: rgba(4, 3, 7, 0.92);
+  --vinyl-hole: rgba(4, 4, 4, 0.92);
   --vinyl-shadow: rgba(0, 0, 0, 0.6);
   --vinyl-shadow-strong: rgba(0, 0, 0, 0.72);
-  --metal-1: #f2eef9;
-  --metal-2: #b3a6c9;
-  --metal-3: #574b6b;
-  --metal-4: #221c2b;
+  --metal-1: #f2f2f2;
+  --metal-2: #b3b3b3;
+  --metal-3: #575757;
+  --metal-4: #222222;
 }
