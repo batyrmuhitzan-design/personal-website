@@ -2,6 +2,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import APlayer from "aplayer";
 import "aplayer/dist/APlayer.min.css";
 import {
+  ListMusic,
+  Pause,
+  Play,
+  Repeat,
+  SkipBack,
+  SkipForward,
+  Volume2,
+} from "lucide-react";
+import {
   AiOutlineClose,
   AiOutlineCustomerService,
   AiOutlineDown,
@@ -26,6 +35,13 @@ import profile from "../portfolio.config";
  *      网易云 / QQ / 抖音 / 汽水：公共 Meting 实例聚合解析；
  *      Spotify：服务端解析公开歌单后匹配国内可播放音源，所以无梯子也能听。
  *    解析服务不可用时，自动退回「公共 Meting 实例直连」模式（不需要后端）。
+ *
+ *  控制条：APlayer 自带的控制条整条隐藏（style.css「自绘控制条」一段里 display:none），
+ *  换成面板里自绘的 .mp-controls——lucide-react 图标 + flex 居中，
+ *  一个实心主按钮（播放 / 暂停）居中，两侧各两个极简副按钮
+ *  （循环模式 / 上一曲 / 下一曲 / 播放列表），左右严格对称。
+ *  进度与音量同样是自绘的 <input type="range">：拖动时直接调 APlayer 的
+ *  seek() / volume()，只把 audio 元素当数据源，不依赖 APlayer 的 DOM 结构与主题样式。
  *
  *  组件生命周期：挂在 App.js 的 Routes 之外，路由切换不会卸载，
  *  因此 APlayer 实例与播放进度都能保持连续。
@@ -55,6 +71,23 @@ function readThemeColor() {
 }
 /** 同一首歌最多尝试几次（代理 → 重新解析），超过就交给 APlayer 自动跳过 */
 const MAX_ATTEMPTS = 2;
+
+/**
+ * 播放顺序：APlayer 的 `options.loop`（它的 `ended` 回调里真的会读这个值）。
+ * 自绘的循环按钮按这个顺序轮转，语义与 APlayer 内置按钮一致：
+ *   all = 列表循环（默认） / one = 单曲循环 / none = 播完停
+ */
+const LOOP_MODES = ["all", "one", "none"];
+const LOOP_LABEL = { all: "列表循环", one: "单曲循环", none: "不循环" };
+
+/** 秒 → m:ss；时长未知（NaN / Infinity / 负数）时给占位符，避免界面出现 NaN */
+function formatTime(seconds) {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
+    return "--:--";
+  }
+  const total = Math.floor(seconds);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
 
 function readPrefs() {
   try {
@@ -138,6 +171,19 @@ function MusicPlayer() {
   const [playerReady, setPlayerReady] = useState(false);
   /** 是否正在播放：驱动黑胶旋转与唱针压下 / 抬起（APlayer 转发的 audio 事件同步） */
   const [playing, setPlaying] = useState(false);
+  /** 自绘进度条用的播放进度 / 总时长（秒），数据源是 audio.currentTime / audio.duration */
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  /** 播放顺序（APlayer options.loop）：all / one / none */
+  const [loopMode, setLoopMode] = useState("all");
+  /** 音量（0~1）：初值取用户上次保存的值，没有就用配置里的音量 */
+  const [volume, setVolume] = useState(() =>
+    typeof initialPrefs.volume === "number" ? initialPrefs.volume : CONFIG.volume || 0.65
+  );
+  /** 音量条是否展开（按钮在标题栏，展开后是一根细长滑块） */
+  const [volumeOpen, setVolumeOpen] = useState(false);
+  /** 是否正在拖动进度条：拖动期间忽略 timeupdate，避免滑块被回放位置抢回去 */
+  const draggingRef = useRef(false);
   const playerRef = useRef(null);
   const abortRef = useRef(null);
   const lastIndexRef = useRef(-1);
@@ -324,7 +370,7 @@ function MusicPlayer() {
       fixed: false,
       preload: "auto",
       listFolded: CONFIG.listFolded !== false,
-      listMaxHeight: "208px",
+      listMaxHeight: "156px",
       volume: typeof prefs.volume === "number" ? prefs.volume : CONFIG.volume || 0.65,
       storageName: `${STORAGE_KEY}-ap`,
     });
@@ -335,8 +381,14 @@ function MusicPlayer() {
     player.on("listswitch", (info) => {
       const index = info && typeof info.index === "number" ? info.index : player.list.index;
       handlersRef.current.onSwitch(index);
+      // 换歌：进度条立刻归零，别让上一首的时间停在界面上
+      setPosition(0);
+      setDuration(0);
     });
-    player.on("volumechange", () => writePrefs({ volume: player.audio.volume }));
+    player.on("volumechange", () => {
+      setVolume(player.audio.volume);
+      writePrefs({ volume: player.audio.volume });
+    });
 
     // 唱片旋转 / 唱针姿态依赖「是否正在播放」：
     // APlayer 内部会把原生 audio 事件（play / playing / pause / ended）转发到 .on()，
@@ -346,6 +398,23 @@ function MusicPlayer() {
     player.on("playing", syncPlaying);
     player.on("pause", () => setPlaying(false));
     player.on("ended", () => setPlaying(false));
+
+    // 进度同步：APlayer 同样把 timeupdate / durationchange 等原生事件转发出来，
+    // 自绘进度条只读 audio 元素（不读 APlayer 内置 bar，那条控制条已经隐藏）。
+    const syncProgress = () => {
+      if (draggingRef.current) return; // 拖动中由用户说了算
+      const audio = player.audio;
+      if (!audio) return;
+      if (Number.isFinite(audio.currentTime)) setPosition(audio.currentTime);
+      if (Number.isFinite(audio.duration)) setDuration(audio.duration);
+    };
+    ["timeupdate", "durationchange", "loadedmetadata", "seeked", "canplay"].forEach((name) =>
+      player.on(name, syncProgress)
+    );
+
+    // 把 APlayer 的内部状态同步到自绘控制条上（循环模式 / 音量）
+    setLoopMode(LOOP_MODES.includes(player.options.loop) ? player.options.loop : "all");
+    setVolume(player.audio.volume);
 
     return () => {
       player.destroy();
@@ -425,6 +494,84 @@ function MusicPlayer() {
     if (!hasSongs && !loading) loadPlatform(platformKey, { autoplay: false });
   }, [loadPlatform, platformKey, loading]);
 
+  /* ---------- 自绘控制条：全部走 APlayer 的公开 API ---------- */
+  /** 统一「取实例 → 调用」：实例还没建好时点击不会抛错 */
+  const withPlayer = useCallback((run) => {
+    const player = playerRef.current;
+    if (player) run(player);
+  }, []);
+
+  const handleTogglePlay = useCallback(() => withPlayer((player) => player.toggle()), [withPlayer]);
+  const handlePrev = useCallback(() => withPlayer((player) => player.skipBack()), [withPlayer]);
+  const handleNext = useCallback(() => withPlayer((player) => player.skipForward()), [withPlayer]);
+  const handleToggleList = useCallback(() => withPlayer((player) => player.list.toggle()), [withPlayer]);
+
+  /**
+   * 循环模式轮转：all（列表循环）→ one（单曲循环）→ none（不循环）→ all。
+   * 直接改 `options.loop` 即可：APlayer 的 ended 回调会读它来决定「下一首 / 单曲重播 / 停」，
+   * 不需要也不应该重建实例。
+   */
+  const handleCycleLoop = useCallback(() => {
+    withPlayer((player) => {
+      const current = LOOP_MODES.includes(player.options.loop) ? player.options.loop : "all";
+      const next = LOOP_MODES[(LOOP_MODES.indexOf(current) + 1) % LOOP_MODES.length];
+      player.options.loop = next;
+      setLoopMode(next);
+    });
+  }, [withPlayer]);
+
+  /** 拖动进度条：先把滑块位置落到 state（手感跟手），再让 APlayer 真正跳转 */
+  const handleSeek = useCallback(
+    (event) => {
+      const value = Number(event.target.value);
+      if (!Number.isFinite(value)) return;
+      setPosition(value);
+      withPlayer((player) => player.seek(value));
+    },
+    [withPlayer]
+  );
+
+  const handleVolume = useCallback(
+    (event) => {
+      const value = Number(event.target.value) / 100;
+      if (!Number.isFinite(value)) return;
+      setVolume(value);
+      // 第二个参数 true = 不写 APlayer 自己的 storage：音量统一存在我们的 prefs 里
+      withPlayer((player) => player.volume(value, true));
+    },
+    [withPlayer]
+  );
+
+  /** 拖拽 / 键盘调整进度期间挂起 timeupdate 同步（见 syncProgress 里的 draggingRef） */
+  const seekDragHandlers = useMemo(
+    () => ({
+      onMouseDown: () => {
+        draggingRef.current = true;
+      },
+      onMouseUp: () => {
+        draggingRef.current = false;
+      },
+      onTouchStart: () => {
+        draggingRef.current = true;
+      },
+      onTouchEnd: () => {
+        draggingRef.current = false;
+      },
+      onKeyDown: () => {
+        draggingRef.current = true;
+      },
+      onKeyUp: () => {
+        draggingRef.current = false;
+      },
+      onBlur: () => {
+        draggingRef.current = false;
+      },
+    }),
+    []
+  );
+
+  const toggleVolume = useCallback(() => setVolumeOpen((open) => !open), []);
+
   if (CONFIG.enabled === false || !PLATFORMS.length) return null;
 
   const current = PLATFORMS.find((item) => item.key === platformKey);
@@ -463,6 +610,16 @@ function MusicPlayer() {
           <div className="mp-actions">
             <button
               type="button"
+              onClick={toggleVolume}
+              aria-label="音量调节"
+              aria-expanded={volumeOpen}
+              title="音量"
+              className={volumeOpen ? "is-active" : ""}
+            >
+              <Volume2 size={14} />
+            </button>
+            <button
+              type="button"
               onClick={handleReload}
               disabled={loading}
               aria-label="重新加载榜单"
@@ -492,25 +649,32 @@ function MusicPlayer() {
         {/* data-lenis-prevent：滚轮落在这一块时别被全站 Lenis 接管，
             否则歌单内部的滚动会被页面滚动抢走（Lenis 会沿 composedPath 向上查找该属性） */}
         <div className="mp-body" data-lenis-prevent>
-          <label className="mp-picker">
+          {/* 平台 / 榜单：容器自建层叠上下文（position + z-index），永远压在唱机与控制条之上。
+              下拉展开的是浏览器原生弹层（渲染在顶层的 top layer，z-index 管不到它），
+              所以这里额外让它独占一行、上下都留出间距：无论弹层朝哪边展开，
+              都不会与下面的控制按钮重叠。 */}
+          <div className="mp-picker">
             <span className="mp-picker-label">平台 / 榜单</span>
-            <select
-              value={platformKey}
-              onChange={handlePlatformChange}
-              disabled={loading}
-              aria-label="选择音乐平台与榜单"
-            >
-              {groups.map((group) => (
-                <optgroup key={group.title} label={group.title}>
-                  {group.items.map((item) => (
-                    <option key={item.key} value={item.key}>
-                      {item.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+            <span className="mp-select">
+              <select
+                value={platformKey}
+                onChange={handlePlatformChange}
+                disabled={loading}
+                aria-label="选择音乐平台与榜单"
+              >
+                {groups.map((group) => (
+                  <optgroup key={group.title} label={group.title}>
+                    {group.items.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <span className="mp-select-caret" aria-hidden="true" />
+            </span>
+          </div>
 
           <div className="mp-stage">
             {/* 静止高光层（玻璃反光 / 标签外圈 / 中心轴孔）：压在唱片上方，
@@ -537,6 +701,108 @@ function MusicPlayer() {
                 <button type="button" onClick={handleReload}>
                   重试
                 </button>
+              </div>
+            ) : null}
+          </div>
+
+          {/* 自绘控制条（APlayer 原生控制条已在 style.css 里整条隐藏）：
+              进度条 → 按钮行 → 可展开的音量条。
+              按钮行严格左右对称：[循环] [上一曲] 【播放/暂停·实心主按钮】 [下一曲] [播放列表] */}
+          <div className="mp-controls" data-mp-controls>
+            <div className="mp-progress">
+              <span className="mp-time mp-time-now" data-mp-position>
+                {formatTime(position)}
+              </span>
+              <input
+                className="mp-range"
+                type="range"
+                min="0"
+                max={duration > 0 ? Math.floor(duration) : 0}
+                step="1"
+                value={duration > 0 ? Math.min(Math.floor(position), Math.floor(duration)) : 0}
+                onChange={handleSeek}
+                disabled={!(duration > 0)}
+                aria-label="播放进度"
+                title="播放进度"
+                {...seekDragHandlers}
+              />
+              <span className="mp-time" data-mp-duration>
+                {duration > 0 ? formatTime(duration) : "--:--"}
+              </span>
+            </div>
+
+            <div className="mp-buttons">
+              <button
+                type="button"
+                className="mp-btn"
+                onClick={handleCycleLoop}
+                aria-label={`循环模式：${LOOP_LABEL[loopMode]}`}
+                aria-pressed={loopMode !== "none"}
+                title={`循环模式：${LOOP_LABEL[loopMode]}`}
+                data-loop-mode={loopMode}
+              >
+                <Repeat size={14} />
+                {loopMode === "one" ? (
+                  <span className="mp-loop-badge" aria-hidden="true">
+                    1
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                className="mp-btn"
+                onClick={handlePrev}
+                disabled={!count}
+                aria-label="上一曲"
+                title="上一曲"
+              >
+                <SkipBack size={16} />
+              </button>
+              <button
+                type="button"
+                className="mp-btn mp-btn-main"
+                onClick={handleTogglePlay}
+                disabled={!count}
+                aria-label={playing ? "暂停" : "播放"}
+                title={playing ? "暂停" : "播放"}
+              >
+                {playing ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+              <button
+                type="button"
+                className="mp-btn"
+                onClick={handleNext}
+                disabled={!count}
+                aria-label="下一曲"
+                title="下一曲"
+              >
+                <SkipForward size={16} />
+              </button>
+              <button
+                type="button"
+                className="mp-btn"
+                onClick={handleToggleList}
+                aria-label="播放列表"
+                title="展开 / 收起播放列表"
+              >
+                <ListMusic size={14} />
+              </button>
+            </div>
+
+            {volumeOpen ? (
+              <div className="mp-volume" data-mp-volume>
+                <Volume2 size={12} aria-hidden="true" />
+                <input
+                  className="mp-range mp-range-volume"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(volume * 100)}
+                  onChange={handleVolume}
+                  aria-label="音量大小"
+                  title="音量"
+                />
               </div>
             ) : null}
           </div>

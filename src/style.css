@@ -811,11 +811,14 @@ button:focus {
 
 .music-player {
   position: fixed;
-  left: 22px;
-  bottom: 22px;
+  left: 18px;
+  bottom: 18px;
   z-index: 9999;
   text-align: left;
-  font-size: 14px;
+  font-size: 13px;
+  /* 面板宽度：标题栏 / 唱机 / 控制条 / 歌单的尺寸都跟着它走。
+     想再缩放播放器，只改这一个数 + 下面的 --mp-disc（按比例）即可。 */
+  --mp-panel-width: 264px;
 }
 
 /* ---------- 隐藏后的启动按钮 ---------- */
@@ -823,9 +826,9 @@ button:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  font-size: 24px;
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
   color: var(--accent-contrast);
   background: var(--accent);
   border: 1px solid var(--accent-line);
@@ -842,15 +845,15 @@ button:focus {
 
 /* ---------- 面板外壳 ---------- */
 .mp-panel {
-  width: 372px;
+  width: var(--mp-panel-width);
   max-width: calc(100vw - 32px);
-  border-radius: 18px;
+  border-radius: 16px;
   /* 唱机面板：磨砂玻璃 + 金属冷光，左上角带一点极淡的强调色氛围光 */
   background:
     radial-gradient(130% 90% at 14% 0%, var(--accent-soft), var(--overlay-fade) 62%),
     linear-gradient(160deg, var(--surface-glass-strong), var(--surface-glass-strong));
   border: 1px solid var(--accent-line);
-  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
   overflow: hidden;
@@ -878,8 +881,9 @@ button:focus {
 .mp-body {
   /* 收回 / 展开的高度过渡：要容得下「唱机 + 展开的歌单」整套内容，
      同时不超过视口剩余高度（面板贴底，超出的部分会被裁到屏幕外）。
-     改成黑胶布局后这一块变高了（唱片 144 + 信息 + 控制条），所以旧值 640 会切掉歌单底部。 */
-  max-height: min(820px, calc(100vh - 80px));
+     播放器瘦身到 264px 后整套内容矮了一档，这里同步收紧，
+     免得展开歌单时面板顶到屏幕外。 */
+  max-height: min(660px, calc(100vh - 72px));
   opacity: 1;
   /* 纵向允许滚动：展开歌单后内容可能超过视口（矮屏 / 手机），
      以前是 overflow:hidden，超出部分会被硬裁掉，歌单底部点不到 */
@@ -918,8 +922,8 @@ button:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 9px 11px;
   background: var(--surface-glass);
   border-bottom: 1px solid var(--accent-line);
 }
@@ -927,13 +931,13 @@ button:focus {
 .mp-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .mp-title-icon {
   flex: 0 0 auto;
-  font-size: 22px;
+  font-size: 18px;
   color: var(--accent);
 }
 
@@ -944,13 +948,13 @@ button:focus {
 }
 
 .mp-title-text strong {
-  font-size: 0.95em;
+  font-size: 0.92em;
   color: var(--text-primary);
   letter-spacing: 0.5px;
 }
 
 .mp-title-text em {
-  font-size: 0.72em;
+  font-size: 0.68em;
   font-style: normal;
   color: var(--text-secondary);
 }
@@ -958,25 +962,31 @@ button:focus {
 .mp-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .mp-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
   color: var(--text-secondary);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 999px;
   cursor: pointer;
   transition: 0.2s ease;
 }
 
-.mp-actions button:hover:not(:disabled) {
+/* lucide 图标自带固定尺寸，这里只负责居中（react-icons 那批靠 font-size 撑） */
+.mp-actions button svg {
+  display: block;
+}
+
+.mp-actions button:hover:not(:disabled),
+.mp-actions button.is-active {
   color: var(--text-primary);
   background: var(--accent-soft);
   border-color: var(--accent-line);
@@ -989,33 +999,78 @@ button:focus {
 
 /* ---------- 平台 / 榜单选择 ---------- */
 .mp-picker {
+  /* 自建层叠上下文：永远压在唱机（.mp-stage z-index:1）与控制条（.mp-controls z-index:2）之上。
+     展开下拉时看着「错位遮挡」，多半就是这几层没排好先后。
+     注意：原生 <select> 的弹出列表由浏览器画在顶层（top layer），z-index 管不到它，
+     所以这里还让它独占一行、上下都留白：弹层朝哪边展开都不会贴到控制按钮。 */
+  position: relative;
+  z-index: 5;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px 4px;
+  gap: 6px;
+  padding: 8px 11px 2px;
 }
 
 .mp-picker-label {
   flex: 0 0 auto;
-  font-size: 0.72em;
+  font-size: 0.68em;
   color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 外框负责视觉，里面的 <select> 铺满并吃掉原生外观 */
+.mp-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .mp-picker select {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 6px 10px;
-  font-size: 0.85em;
+  height: 26px;
+  padding: 0 22px 0 10px;
+  font-size: 0.8em;
+  line-height: 24px;
   color: var(--text-primary);
   background: var(--surface-glass-strong);
-  border: 1px solid var(--accent-line);
-  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
   outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.mp-picker select:focus {
-  border-color: var(--accent-line);
+.mp-picker select:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.mp-picker select:focus,
+.mp-picker select:focus-visible {
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.mp-picker select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 自绘下拉箭头（两个边框拼的 45° 角），比浏览器默认箭头更贴黑白极简 */
+.mp-select-caret {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--text-secondary);
+  border-bottom: 1.5px solid var(--text-secondary);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
 }
 
 .mp-picker select option,
@@ -1029,19 +1084,23 @@ button:focus {
    两个几何量：
      --mp-disc      唱片直径
      --mp-disc-top  唱片相对 stage 内容盒（padding box）的顶部偏移，给抬起的唱针预留高度
-   唱片 / 高光层 / 唱针层都是「与唱片等大的绝对定位盒子」，所以桌面端（372px）
-   与移动端（自适应宽度）都能自动对齐，不需要任何 JS 测量。 */
+   唱片 / 高光层 / 唱针层都是「与唱片等大的绝对定位盒子」，所以桌面端（264px）
+   与移动端（自适应宽度）都能自动对齐，不需要任何 JS 测量。
+   瘦身比例：唱片 144 → 104px（≈72%），唱针的枢轴 / 唱臂 / 唱头按同一比例缩小，
+   不然唱臂会显得比唱片还长。 */
 .mp-stage {
   position: relative;
-  --mp-disc: 144px;
-  --mp-disc-top: 34px;
-  padding: var(--mp-disc-top) 12px 14px;
+  /* 唱机台面在控制条之下：下拉弹层（.mp-picker z-index:5）永远压在它上面 */
+  z-index: 1;
+  --mp-disc: 104px;
+  --mp-disc-top: 26px;
+  padding: var(--mp-disc-top) 12px 12px;
   /* 唱机台面：金属冷光 + 顶部极淡的强调色氛围光 */
   background:
     radial-gradient(120% 78% at 50% 0%, var(--accent-soft), var(--overlay-fade) 62%),
     linear-gradient(180deg, var(--surface-glass-strong), var(--surface-glass-strong));
   border: 1px solid var(--accent-line);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -1051,12 +1110,12 @@ button:focus {
   display: block !important;
   width: var(--mp-disc) !important;
   height: var(--mp-disc) !important;
-  margin: 0 auto 14px !important;
+  margin: 0 auto 10px !important;
   border-radius: 50% !important;
   background-size: cover !important;
   background-position: center !important;
-  box-shadow: 0 16px 30px var(--vinyl-shadow-strong), 0 0 0 2px var(--vinyl-ring),
-    0 0 26px var(--accent-glow) !important;
+  box-shadow: 0 12px 22px var(--vinyl-shadow-strong), 0 0 0 2px var(--vinyl-ring),
+    0 0 20px var(--accent-glow) !important;
   /* 恒速旋转；暂停时用 animation-play-state 冻结在当前角度（不会弹回 0°）。
      注意 animation-play-state 必须写在 animation 简写之后，否则会被简写重置。 */
   animation: mp-vinyl-spin 20s linear infinite;
@@ -1112,13 +1171,13 @@ button:focus {
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
-  width: 30px !important;
-  height: 30px !important;
-  /* 30 + 2×2 边框 = 34，取一半做居中的负边距 */
-  margin: -17px 0 0 -17px !important;
+  width: 26px !important;
+  height: 26px !important;
+  /* 26 + 2×2 边框 = 30，取一半做居中的负边距 */
+  margin: -15px 0 0 -15px !important;
   border: 2px solid var(--border-strong) !important;
   background: var(--surface-glass) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 0 6px var(--accent-glow) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5), 0 0 0 5px var(--accent-glow) !important;
   opacity: 0 !important;
   animation: mp-vinyl-spin-back 20s linear infinite;
   animation-play-state: paused;
@@ -1128,8 +1187,8 @@ button:focus {
 .mp-aplayer .aplayer-pic .aplayer-button svg {
   top: 50% !important;
   left: 50% !important;
-  width: 16px !important;
-  height: 16px !important;
+  width: 14px !important;
+  height: 14px !important;
   transform: translate(-50%, -50%);
 }
 
@@ -1146,8 +1205,8 @@ button:focus {
 
 /* 播放中额外加一层强调色辉光，静态截图里也能一眼看出「正在转」 */
 .mp-is-playing .mp-aplayer .aplayer-pic {
-  box-shadow: 0 16px 30px var(--vinyl-shadow-strong), 0 0 0 2px var(--vinyl-ring),
-    0 0 32px var(--accent-glow) !important;
+  box-shadow: 0 12px 22px var(--vinyl-shadow-strong), 0 0 0 2px var(--vinyl-ring),
+    0 0 24px var(--accent-glow) !important;
 }
 
 /* 兜底（支持 :has 的浏览器）：直接跟随 APlayer 播放按钮的真实状态，
@@ -1214,28 +1273,28 @@ button:focus {
 /* 金属枢轴（不随唱臂旋转，所以单独放在唱臂之外） */
 .mp-stylus-pivot {
   position: absolute;
-  right: -31px;
-  top: -12px;
-  width: 22px;
-  height: 22px;
+  right: -24px;
+  top: -10px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: radial-gradient(circle at 34% 30%, var(--metal-1), var(--metal-2) 46%, var(--metal-4) 100%);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 /* 唱臂：transform-origin 落在枢轴圆心，旋转时唱臂 + 唱头一起摆动 */
 .mp-stylus-arm {
   position: absolute;
-  right: -20px;
-  top: -4px;
-  width: 92px;
-  height: 6px;
-  border-radius: 3px;
+  right: -16px;
+  top: -3px;
+  width: 68px;
+  height: 5px;
+  border-radius: 2.5px;
   transform-origin: 100% 50%;
   transform: rotate(16deg); /* 未播放：抬起外偏，针尖悬在唱片上方 */
   transition: transform 0.7s cubic-bezier(0.34, 1.16, 0.64, 1);
   background: linear-gradient(180deg, var(--metal-1) 0%, var(--metal-2) 38%, var(--metal-3) 72%, var(--metal-4) 100%);
-  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
 }
 
 /* 播放中：针尖压下，落在外圈纹路上 */
@@ -1251,14 +1310,14 @@ button:focus {
 /* 唱头（跟着唱臂一起摆动） */
 .mp-stylus-head {
   position: absolute;
-  left: -4px;
+  left: -3px;
   top: 50%;
-  width: 20px;
-  height: 12px;
-  margin-top: -6px;
-  border-radius: 3px 5px 5px 3px;
+  width: 15px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 2px 4px 4px 2px;
   background: linear-gradient(180deg, var(--metal-1), var(--metal-3) 55%, var(--metal-4) 100%);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 @keyframes mp-vinyl-spin {
@@ -1328,8 +1387,8 @@ button:focus {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 14px 12px;
-  font-size: 0.72em;
+  padding: 6px 11px 10px;
+  font-size: 0.66em;
   color: var(--text-secondary);
 }
 
@@ -1406,15 +1465,15 @@ button:focus {
      这里封面已经改到上方了，必须拉满整宽，否则曲名会整体偏左、不在唱片正下方 */
   width: 100% !important;
   height: auto !important;
-  margin: 0 0 8px !important;
+  margin: 0 0 6px !important;
   padding: 0 !important;
-  line-height: 1.45 !important;
+  line-height: 1.4 !important;
   white-space: normal !important;
 }
 
 .mp-aplayer .aplayer-info .aplayer-music .aplayer-title {
   display: block !important;
-  font-size: 15px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   color: var(--text-primary) !important;
   letter-spacing: 0.4px;
@@ -1423,284 +1482,243 @@ button:focus {
 
 .mp-aplayer .aplayer-info .aplayer-music .aplayer-author {
   display: block !important;
-  margin-top: 2px;
-  font-size: 12px !important;
-  color: var(--text-secondary) !important;
-}
-
-/* 控制条：三段式布局（进度条 → 时间 → 控制按钮）
-   DOM 固定为 .aplayer-controller > (.aplayer-bar-wrap + .aplayer-time)，
-   时间文字与控制按钮都塞在 .aplayer-time 里。这里用 grid + display:contents
-   把 .aplayer-time「打散」，让它的子元素直接参与外层网格，从而拆成两行。 */
-.mp-aplayer .aplayer-info .aplayer-controller {
-  display: grid !important;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  align-items: center !important;
-  justify-items: center;
-  column-gap: 6px;
-  width: 100% !important;
-  padding: 2px 0 0 !important;
-}
-
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-time {
-  /* display:contents：自身不生成盒子，时间 / 按钮成为外层网格的直接子项 */
-  display: contents !important;
-  color: var(--text-secondary) !important;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 时间：进度条下方单独一行居中「0:12 / 3:45」 */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-time-inner {
-  grid-row: 2;
-  grid-column: 1 / -1;
-  padding: 2px 0 8px !important;
+  margin-top: 1px;
   font-size: 11px !important;
-  letter-spacing: 0.4px;
-  vertical-align: middle;
+  color: var(--text-secondary) !important;
 }
 
-/* 控制按钮行（第 3 行）：上一首 / 播放 / 下一首 / 播放顺序 / 循环 / 音量 / 歌单。
-   back / play / forward 这三个 APlayer 只在 fixed 模式下用 CSS 显示，
-   但点击事件早已绑定（skipBack / toggle / skipForward），放出来即可用。 */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-back,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-forward {
-  display: inline-flex !important;
+/* ⚠️ APlayer 原生控制条：整条隐藏，换成面板里自绘的 .mp-controls（见下）。
+   为什么用 display:none 而不是「干脆别渲染」：
+     · APlayer 的 seek() / volume() / setUIPlaying() 都会回来改这条子树上的行内样式，
+       元素留在 DOM 里（哪怕不可见）它的内部逻辑才不需要额外兜底；
+     · 它只负责「显示」，音频、播放列表、歌词、事件转发这些真正的播放逻辑都不受影响。
+   自绘控制条的每个按钮都调 APlayer 的公开 API，所以主题、图标、对齐全由我们说了算。 */
+.mp-aplayer .aplayer-info .aplayer-controller {
+  display: none !important;
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-back,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-forward,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-order,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-loop,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-menu,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap {
-  grid-row: 3;
-  position: relative !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 32px !important;
-  height: 32px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 1px solid var(--accent-line) !important;
-  border-radius: 50% !important;
-  background: var(--surface-tint) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  opacity: 1 !important;
-  cursor: pointer !important;
-  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+/* ---------- 自绘控制条（进度条 + 按钮行 + 音量条） ---------- */
+.mp-controls {
+  /* 压在唱机台面（.mp-stage z-index:1）之上、下拉选择（.mp-picker z-index:5）之下 */
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 11px 2px;
 }
 
-/* 音量键的外圈由 .aplayer-volume-wrap 承担，里面的 button 撑满即可 */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap {
-  display: inline-flex !important;
+/* 进度：左时间 / 中滑条 / 右时间，三段式 */
+.mp-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap .aplayer-icon-volume-down {
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
+.mp-time {
+  flex: 0 0 auto;
+  min-width: 30px;
+  font-size: 10px;
+  /* 等宽数字：时间跳动时两侧不会来回抖 */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon svg {
-  width: 14px !important;
-  height: 14px !important;
+.mp-time-now {
+  text-align: right;
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon path {
-  fill: var(--text-primary) !important;
-  transition: fill 0.2s ease;
+/* 极细滑条：2px 轨道 + 小圆点；颜色取 accent 令牌（浅色主题黑 / 深色主题白） */
+.mp-range {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
 }
 
-/* 悬停：强调色微光（不用 transform，避免覆盖 forward 图标自带的 180° 翻转） */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon:hover,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap:hover {
-  background: var(--accent-soft) !important;
-  border-color: var(--accent-line) !important;
-  box-shadow: 0 6px 16px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+.mp-range:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon:hover path {
-  fill: var(--text-primary) !important;
+.mp-range::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 999px;
+  background: var(--surface-tint-strong);
 }
 
-/* 播放键：主按钮，实心强调色圆钮 */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play {
-  width: 40px !important;
-  height: 40px !important;
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  box-shadow: 0 8px 20px var(--accent-glow), inset 0 1px 0 var(--shadow-inset);
+.mp-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  margin-top: -3px; /* (2 - 8) / 2：圆点落在细线正中 */
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  transition: transform 0.15s ease;
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play svg {
-  width: 16px !important;
-  height: 16px !important;
+.mp-range:hover::-webkit-slider-thumb,
+.mp-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.2);
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play path {
-  fill: var(--accent-contrast) !important;
+.mp-range::-moz-range-track {
+  height: 2px;
+  border-radius: 999px;
+  background: var(--surface-tint-strong);
 }
 
-/* APlayer 只切换「唱片上那个按钮」的图标，控制栏播放键的图标不会变，
-   所以播放中用 CSS 画两条暂停竖条（.mp-is-playing 来自组件状态，
-   :has() 那条用于自动播放被拦截等 React 状态没跟上的兜底场景）。 */
-.mp-is-playing .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play svg,
-.mp-panel:has(.aplayer-button.aplayer-pause) .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play svg {
-  opacity: 0 !important;
+.mp-range::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.mp-is-playing .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::before,
-.mp-is-playing .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::after,
-.mp-panel:has(.aplayer-button.aplayer-pause) .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::before,
-.mp-panel:has(.aplayer-button.aplayer-pause) .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::after {
-  content: "";
+.mp-range:focus-visible {
+  outline: none;
+}
+
+/* 按钮行：flex 居中 + 8px 等距；五个按钮左右对称（主按钮正中间） */
+.mp-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mp-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+/* lucide 图标是 currentColor 描边：颜色跟着按钮走 = 自动适配黑白主题 */
+.mp-btn svg {
+  display: block;
+}
+
+.mp-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.mp-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.mp-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.mp-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 主按钮（播放 / 暂停）：实心 accent 圆钮 —— 浅色主题 = 纯黑底白图标 */
+.mp-btn-main {
+  width: 36px;
+  height: 36px;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px var(--accent-glow), inset 0 1px 0 var(--shadow-inset);
+}
+
+.mp-btn-main:hover:not(:disabled) {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* 循环模式：one 加角标「1」，none 压暗（语义与 APlayer 内置循环键一致） */
+.mp-btn[data-loop-mode="none"] {
+  color: var(--text-secondary);
+  opacity: 0.55;
+}
+
+.mp-loop-badge {
   position: absolute;
-  top: 50%;
-  width: 4px;
-  height: 15px;
-  margin-top: -7.5px;
-  border-radius: 1.5px;
-  background: var(--bg-primary);
+  right: -1px;
+  bottom: -1px;
+  padding: 0 3px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 12px;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-radius: 999px;
 }
 
-.mp-is-playing .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::before,
-.mp-panel:has(.aplayer-button.aplayer-pause) .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::before {
-  left: 50%;
-  margin-left: -6px;
+/* 音量条：由标题栏的音量按钮展开，与进度条共用一套细线样式 */
+.mp-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 0;
+  color: var(--text-secondary);
+  animation: mp-fade-in 0.2s ease;
 }
 
-.mp-is-playing .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::after,
-.mp-panel:has(.aplayer-button.aplayer-pause) .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play::after {
-  left: 50%;
-  margin-left: 2px;
-}
-
-/* 进度条：独占第一行、铺满整宽（内凹细轨 + 强调色已播） */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap {
-  grid-row: 1;
-  grid-column: 1 / -1;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 8px 0 2px !important;
-}
-
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar {
-  height: 4px !important;
-  border-radius: 2px !important;
-  background: var(--surface-tint) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-loaded {
-  height: 4px !important;
-  border-radius: 2px !important;
-  background: var(--surface-tint-strong) !important;
-}
-
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-played {
-  height: 4px !important;
-  border-radius: 2px !important;
-  background: var(--accent) !important;
-}
-
-/* 进度圆点：常显（APlayer 默认只在悬停时 scale(1)），并按 4px 细轨重新对中 */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar .aplayer-thumb {
-  top: 50% !important;
-  right: 0 !important;
-  width: 12px !important;
-  height: 12px !important;
-  margin-top: -6px !important;
-  margin-right: -6px !important;
-  transform: scale(1) !important;
-  background: var(--accent-contrast) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), 0 0 0 4px var(--accent-glow);
-}
-
-/* 音量滑块：悬停音量键时从按钮「正上方」弹出（沿用 APlayer 的交互，只重做外观与层级）
-   要点：
-     1. bottom:100% + 水平居中 → 弹出方向恒为正上方，不会再歪到面板外；
-     2. z-index 抬到控制条之上，不会被进度条 / 歌词 / 唱片层压住；
-     3. 祖先的 overflow 已在 .mp-aplayer 上放开，弹层不会再被裁掉（修复「按不出来」）；
-     4. 固定高度 + 只用 opacity/scale 显隐：既避免 height:0 时边框仍画出两条细线，
-        也顺带做出「向上弹出」的动画。 */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap::after {
-  /* 按钮与弹层之间的透明「桥」，鼠标经过空隙时不会立刻收起 */
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  width: 34px;
+.mp-range-volume {
   height: 12px;
-  margin-left: -17px;
 }
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap .aplayer-volume-bar-wrap {
-  position: absolute !important;
-  bottom: 100% !important;
-  right: auto !important;
-  left: 50% !important;
-  width: 32px !important;
-  height: 108px !important;
-  margin: 0 0 10px !important;
-  padding: 0 !important;
-  border: 1px solid var(--accent-line) !important;
-  border-radius: 16px !important;
-  background: linear-gradient(180deg, var(--surface-glass-strong), var(--surface-glass-strong)) !important;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px) saturate(1.2);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  overflow: hidden !important;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-50%) translateY(6px) scale(0.94);
-  transform-origin: bottom center;
-  z-index: 40 !important;
-  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.34, 1.2, 0.64, 1);
+@keyframes mp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* 悬停 / APlayer 自己维护的 active 类都能展开 */
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap:hover .aplayer-volume-bar-wrap,
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-bar-wrap.aplayer-volume-bar-wrap-active {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0) scale(1);
-}
+/* 原生控制条里「用两根伪元素竖条伪造暂停图标」「内凹进度轨 + 进度圆点」
+   的那几段覆盖样式已经删除：控制条整条隐藏（见上面的 display:none），
+   图标由 React 直接切换 <Play /> / <Pause />，进度条换成自绘的 .mp-range。 */
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap .aplayer-volume-bar-wrap .aplayer-volume-bar {
-  position: absolute !important;
-  left: 50% !important;
-  right: auto !important;
-  top: auto !important;
-  bottom: 14px !important;
-  transform: translateX(-50%);
-  width: 6px !important;
-  height: 80px !important;
-  border-radius: 3px !important;
-  background: var(--surface-tint) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
-  overflow: hidden !important;
-}
 
-.mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap .aplayer-volume-bar-wrap .aplayer-volume-bar .aplayer-volume {
-  left: 0 !important;
-  right: auto !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  border-radius: 3px !important;
-  /* 必须 !important：APlayer 会把主题色写成元素上的行内 background */
-  background: var(--accent) !important;
-  box-shadow: 0 0 10px var(--accent-glow);
-}
+/* 原来的「悬停音量键 → 向上弹出竖向音量条」整块样式也已删除：
+   音量入口现在在标题栏（.mp-actions 的音量按钮），展开的是控制条里一根
+   横向细滑条（.mp-volume / .mp-range-volume），与进度条同一套视觉。
+   好处是弹层不再需要和唱片 / 歌词 / 控制条抢 z-index，也不会被面板裁切。 */
 
 /* 歌词：半透明玻璃浮层（上下渐隐色块跟浮层底色对齐） */
 .mp-aplayer .aplayer-lrc {
   width: 100% !important;
-  height: 44px !important;
-  margin: 0 0 10px !important;
+  height: 36px !important;
+  margin: 0 0 8px !important;
   text-shadow: none !important;
   background: var(--surface-glass);
   border-radius: 10px;
@@ -1716,9 +1734,9 @@ button:focus {
 }
 
 .mp-aplayer .aplayer-lrc p {
-  height: 22px !important;
-  font-size: 13px !important;
-  line-height: 22px !important;
+  height: 20px !important;
+  font-size: 12px !important;
+  line-height: 20px !important;
   color: var(--text-tertiary) !important;
 }
 
@@ -1764,8 +1782,9 @@ button:focus {
 }
 
 .mp-aplayer .aplayer-list ol li {
-  height: 34px !important;
-  line-height: 34px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  font-size: 12px !important;
   color: var(--text-primary) !important;
   border-top: 1px solid var(--accent-line) !important;
 }
@@ -1811,45 +1830,36 @@ button:focus {
   }
 
   .mp-body {
-    max-height: min(760px, 84vh);
+    max-height: min(620px, 84vh);
   }
 
   /* 窄屏时唱片略小一点，保证唱针枢轴不越界 */
   .mp-stage {
-    --mp-disc: 132px;
-    --mp-disc-top: 32px;
+    --mp-disc: 96px;
+    --mp-disc-top: 24px;
   }
 
-  /* 窄屏把控制按钮收紧一档，保证 7 个按钮（含 40px 播放键）不会互相挤压 */
-  .mp-aplayer .aplayer-info .aplayer-controller {
-    column-gap: 4px;
+  /* 窄屏把按钮收紧一档，保证 5 个按钮（含 36px 播放键）不会互相挤压 */
+  .mp-buttons {
+    gap: 6px;
   }
 
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-back,
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-forward,
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-order,
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-loop,
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-menu,
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap {
-    width: 30px !important;
-    height: 30px !important;
+  .mp-btn {
+    width: 26px;
+    height: 26px;
   }
 
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-icon-play {
-    width: 36px !important;
-    height: 36px !important;
+  .mp-btn-main {
+    width: 34px;
+    height: 34px;
   }
 }
 
-/* 触屏（无 hover）：APlayer 会隐藏音量按钮、也不绑定音量点击事件，
-   这里把音量外圈一并收掉，按钮行改成 6 列，保证按钮组仍然居中。 */
+/* 触屏（无 hover）：自绘控制条不依赖悬停，这里只把音量入口收起来
+   —— 手机上音量靠系统按键调，面板里少一个按钮更清爽。 */
 @media (hover: none) {
-  .mp-aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap {
-    display: none !important;
-  }
-
-  .mp-aplayer .aplayer-info .aplayer-controller {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+  .mp-actions button[aria-expanded] {
+    display: none;
   }
 }
 
