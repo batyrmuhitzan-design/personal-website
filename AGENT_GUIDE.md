@@ -247,6 +247,14 @@ bash deploy.sh --no-rollback          # 失败不回滚（排障用）
 > （`npm run build` 阶段完全靠 swap 撑着），整条链路约 8~10 分钟。
 > 日志长时间停在 `#20 ... npm run build` 属正常现象，**别误判为卡死**；
 > `--timeout` 只作用于健康检查等待，不会掐断构建。
+>
+> ⚠️ **2026-10-09 实测：这条链路会失败。** 构建进程在
+> `Creating an optimized production build...` 之后 27 分钟没有任何新输出，最后被内核 OOM
+> 杀掉（`docker images` 里 `personal-website:latest` 的 ID 与 `:previous` 完全相同），
+> 而 `deploy.sh` 仍打印了「✓ 远端部署流程结束」，很容易误判成「已上线」。
+> 判定方法：**看镜像 ID 变没变**，别只看脚本退出的那行字。
+> 遇到这种情况直接改用下面 **9.3** 的方案。
+
 
 本地模式的四道保护：
 
@@ -270,6 +278,50 @@ ssh kaznu "cd /opt/personal-website && docker compose build && docker compose up
 # 4) 服务器：验证
 ssh kaznu "curl -s http://127.0.0.1:8881/healthz; curl -s http://127.0.0.1:8881/music/api/health"
 ```
+
+### 9.3 服务器内存不够时的保底方案：本机编译 + 服务器只打 nginx 镜像
+
+**什么时候用它**：`docker compose build` 卡住太久、或上面 9.1 的告警成立（镜像 ID 没变）。
+这台机器 837MB 内存 + 2GB swap，剩余内存会被同机的 nodebb / mariadb / 1faka 吃掉，
+能不能编译过并不稳定；把编译搬到开发机后就只剩「nginx + 静态文件」这一层，
+打包 3~5 秒完成、几乎不吃内存。
+
+```bash
+# 本机（Git Bash / WSL）：编译 → 推送 → 上传产物 → 服务器打包切换（带产物自检与失败回滚）
+bash scripts/deploy-prebuilt.sh
+
+bash scripts/deploy-prebuilt.sh --no-build   # 复用现有 build/，跳过本机编译
+bash scripts/deploy-prebuilt.sh --rollback   # 回滚：把 :previous 镜像换回 :latest 并重建容器
+```
+
+```powershell
+# 没装 bash 时（纯 PowerShell 等价流程，2026-10-09 验证通过）
+cd E:\个人网
+$env:CI='true'; $env:GENERATE_SOURCEMAP='false'; $env:NODE_OPTIONS='--max-old-space-size=4096'
+npm run build                                  # 约 1 分钟
+git add -A; git commit -m "..."; git push origin master   # Dockerfile.prebuilt 必须先到远端
+
+Remove-Item prebuilt -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory prebuilt | Out-Null
+Copy-Item build\* prebuilt -Recurse -Force
+tar -czf "$env:TEMP\prebuilt.tar.gz" -C . prebuilt
+scp "$env:TEMP\prebuilt.tar.gz" kaznu:/tmp/pw-prebuilt-upload.tar.gz
+
+ssh kaznu "cd /opt/personal-website && git fetch --prune origin && git reset --hard origin/master \
+  && docker tag personal-website:latest personal-website:previous \
+  && rm -rf prebuilt && mkdir prebuilt && tar -xzf /tmp/pw-prebuilt-upload.tar.gz -C . \
+  && docker build -f Dockerfile.prebuilt -t personal-website:latest . \
+  && docker compose up -d --force-recreate personal-website"
+```
+
+要点：
+
+- `prebuilt/` 已在 `.gitignore` 里：不入库，服务器上 `git reset --hard` 也不会删它；
+- **先 push 再让服务器 reset**，否则服务器上可能没有 `Dockerfile.prebuilt`；
+- 切换前会自动 `docker tag personal-website:latest personal-website:previous`，回滚只换标签即可；
+- 验收标准：`docker images` 里 `latest` 的 ID 变了 + 容器 `(healthy)` +
+  首页 HTML 引用的 `main.<hash>.js/css` 与 `prebuilt/static/**` 里的文件名一致。
+
 
 ---
 
@@ -339,6 +391,9 @@ Windows 控制台若是 GBK，中文可能显示成乱码，先 `chcp 65001` 即
 | `src/theme/ThemeContext.tsx` | 主题上下文：持久化 / 跟随系统 / 过渡窗口 | ✅ |
 | `src/components/Header.tsx` · `ThemeToggle.tsx` | 极简顶部导航 + 日夜切换（取代旧 `Navbar.js`） | ✅ |
 | `scripts/slim-server.sh` | 小内存服务器瘦身（默认只体检，`--apply` 才动手） | ✅ |
+| `Dockerfile.prebuilt` | 预构建产物镜像：nginx + 静态文件，服务器不编译（小内存专用，见 9.3） | ✅ |
+| `scripts/deploy-prebuilt.sh` | 本机编译 → 服务器只打 nginx 镜像（含产物自检、健康检查、`:previous` 回滚） | ✅ |
+| `prebuilt/` | 部署时上传的编译产物（`Dockerfile.prebuilt` 的上下文） | ❌（`.gitignore` 已忽略） |
 
 ---
 
