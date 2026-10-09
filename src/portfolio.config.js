@@ -46,6 +46,39 @@ const profile = {
   /* ---------------- 简历 PDF（由 scripts/make-resume-pdf.mjs 生成） ---------------- */
   resumeFile: "Shasha_Resume.pdf",
 
+  /* ---------------- 自定义光标（由 src/components/CustomCursor.tsx 读取） ----------------
+     皮肤：pixel = 内置「赛博像素小人」（默认，内联 SVG，颜色随主题反相）
+           cartoon = 手绘矢量卡通小人（原有皮肤，会眨眼 / 挥手 / 咧嘴）
+     spriteUrl：填自己的图片就能整体替换图案（支持 PNG / GIF / SVG，动画 GIF 会自己播）
+                · 图片放 public/ 就写 "/cursor.png"（文件名别用中文）
+                · 也可以用 import 把资源交给打包器（见 CustomCursor.tsx 顶部注释）
+                · 留空 = 用内置像素小人
+     spriteWidth：精灵显示宽度（px），高度按图案比例自动算，不写默认 30
+     tilt：悬停到可点击元素（a / button / [data-cursor="pointer"] …）时的旋转角度（deg），
+           设 0 就只放大不旋转
+     enabled：false = 整体关掉，回到系统光标
+     补充：输入框 / textarea / [contenteditable] 会自动交还系统光标（文本插入点体验） */
+  cursor: {
+    enabled: true,
+    skin: "pixel",
+    spriteUrl: "",
+    spriteWidth: 30,
+    tilt: 8,
+  },
+
+  /* ---------------- 动效体系（平滑滚动 / 入场 / 视差 / 切页） ----------------
+     平滑滚动：Lenis，参数在下面 motion.lenis（场景见 src/components/SmoothScroll.tsx）
+       · duration：滚轮松手后「滑行」多久，越大越沉
+       · easingExponent：收尾指数，越大末段越慢越「贵」
+     入场 / 视差 / 切页动画的开关**不在这里**：统一是 CSS 变量 --motion-play-state
+     （默认 running，定义与说明在 src/index.css，改一处即可让全站动效静音） */
+  motion: {
+    lenis: {
+      duration: 1.05,
+      easingExponent: 4.2,
+    },
+  },
+
   /* ---------------- 悬浮音乐播放器 ---------------- */
   /* 榜单数据由 music-api/ 解析服务提供（nginx 反向代理到 /music/api）：
      - 网易云 / QQ / 抖音 / 汽水：走公共 Meting 聚合解析

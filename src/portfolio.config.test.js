@@ -35,6 +35,54 @@ describe("portfolio.config", () => {
   });
 });
 
+describe("portfolio.config · 自定义光标", () => {
+  const cursor = profile.cursor;
+
+  it("配置齐全：开关 / 皮肤 / 精灵尺寸 / 悬停倾斜都在合理范围", () => {
+    expect(typeof cursor.enabled).toBe("boolean");
+    // 皮肤只认这两种 —— CustomCursor 里其余写法都会回落到 pixel
+    expect(["pixel", "cartoon"]).toContain(cursor.skin);
+    expect(typeof cursor.spriteUrl).toBe("string");
+    if (cursor.spriteUrl) {
+      // 非空时必须是可用 URL（public 路径 / 绝对地址 / data-URI 都行）
+      expect(() =>
+        new URL(cursor.spriteUrl, "https://i.1losion.me")
+      ).not.toThrow();
+    }
+    expect(typeof cursor.spriteWidth).toBe("number");
+    expect(cursor.spriteWidth).toBeGreaterThan(0);
+    expect(cursor.spriteWidth).toBeLessThanOrEqual(128);
+    expect(typeof cursor.tilt).toBe("number");
+    expect(cursor.tilt).toBeGreaterThanOrEqual(0);
+    expect(cursor.tilt).toBeLessThanOrEqual(45);
+  });
+
+  it("默认用内置像素小人：不填 spriteUrl 也能跑（无需额外资源）", () => {
+    expect(cursor.enabled).toBe(true);
+    expect(cursor.skin).toBe("pixel");
+    expect(cursor.spriteUrl).toBe("");
+  });
+});
+
+describe("portfolio.config · 动效体系（Lenis）", () => {
+  const lenis = profile.motion.lenis;
+
+  it("平滑滚动参数在合理范围（太大=发飘，太小=没手感）", () => {
+    expect(typeof lenis.duration).toBe("number");
+    expect(lenis.duration).toBeGreaterThan(0);
+    expect(lenis.duration).toBeLessThanOrEqual(3);
+
+    expect(typeof lenis.easingExponent).toBe("number");
+    expect(lenis.easingExponent).toBeGreaterThanOrEqual(1);
+    expect(lenis.easingExponent).toBeLessThanOrEqual(10);
+  });
+
+  it("入场 / 视差 / 切页的开关不放在配置里，而是 CSS 变量 --motion-play-state", () => {
+    // 这里只放 Lenis 参数：其余动效统一由 src/index.css 的变量裁决（改一处静音全站）
+    expect(Object.keys(profile.motion)).toEqual(["lenis"]);
+  });
+});
+
 describe("portfolio.config · 悬浮音乐播放器", () => {
   const music = profile.musicPlayer;
 

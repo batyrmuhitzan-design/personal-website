@@ -1,5 +1,5 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react-dom/test-utils";
 import CustomCursor from "./CustomCursor";
 
@@ -87,6 +87,120 @@ describe("CustomCursor", () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
     });
 
+    restore();
+  });
+});
+
+/** 等还在跑的弹簧（缩放 / 旋转 / 透明度）结算完，别把定时器留给 Jest */
+const settleSprings = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  });
+
+describe("CustomCursor · 皮肤（pixel / cartoon / 自定义精灵）", () => {
+  test("默认皮肤是内置像素小人：内联 SVG + crispEdges，颜色只走 CSS 变量", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor />);
+    await nextFrame();
+
+    const svg = document.body.querySelector("svg.cur-pixel--builtin");
+    expect(svg).not.toBeNull();
+    // 像素块要是方的：不写抗锯齿
+    expect(svg).toHaveAttribute("shape-rendering", "crispEdges");
+    expect(Number(svg.getAttribute("data-pixel-rects"))).toBeGreaterThan(0);
+
+    // 颜色全部走设计令牌 → 深浅主题自动反相（换肤不需要重算 SVG）
+    const layers = Array.from(svg.querySelectorAll("g"));
+    expect(layers.length).toBeGreaterThan(0);
+    layers.forEach((group) => {
+      expect(group.getAttribute("fill")).toMatch(/^var\(--/);
+    });
+
+    // 像素皮肤下不会渲染手绘卡通小人
+    expect(document.body.querySelector("svg.cur-figure")).toBeNull();
+
+    restore();
+  });
+
+  test('skin="cartoon"：渲染手绘卡通小人，不出现像素小人', async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor skin="cartoon" />);
+    await nextFrame();
+
+    expect(document.body.querySelector("svg.cur-figure")).not.toBeNull();
+    expect(document.body.querySelector("svg.cur-pixel")).toBeNull();
+
+    restore();
+  });
+
+  test("spriteUrl：用自己的 PNG / GIF / SVG 替换图案（pixelated、宽度按配置）", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor spriteUrl="/cursor.png" spriteWidth={48} />);
+    await nextFrame();
+
+    const img = document.body.querySelector("img.cur-pixel--custom");
+    expect(img).not.toBeNull();
+    expect(img).toHaveAttribute("src", "/cursor.png");
+    expect(img).toHaveAttribute("width", "48");
+    expect(img.style.imageRendering).toBe("pixelated");
+    expect(img).toHaveAttribute("draggable", "false");
+
+    // 外层包裹跟着配置走：高度按图案的 12:16 比例算（48 → 64）
+    const figure = document.body.querySelector(".cur-figure-wrap");
+    expect(figure.style.width).toBe("48px");
+    expect(figure.style.height).toBe("64px");
+
+    // 有自定义精灵就不再画内置像素小人
+    expect(document.body.querySelector("svg.cur-pixel--builtin")).toBeNull();
+
+    restore();
+  });
+});
+
+describe("CustomCursor · 悬停状态", () => {
+  test("悬停到可点击元素：小人加 cur--over，并显示 data-cursor-text 气泡", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor />);
+    await nextFrame();
+
+    render(<button data-cursor-text="打开项目">点我</button>);
+
+    fireEvent.mouseOver(screen.getByText("点我"));
+
+    await waitFor(() =>
+      expect(document.body.querySelector(".cur-figure-wrap")).toHaveClass(
+        "cur--over"
+      )
+    );
+    expect(document.body.querySelector(".cur-label")).toHaveTextContent(
+      "打开项目"
+    );
+
+    await settleSprings();
+    restore();
+  });
+
+  test("悬停在输入类控件上：交还系统光标（cur--native，两层淡出）", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor />);
+    await nextFrame();
+
+    render(<input aria-label="搜索框" />);
+
+    fireEvent.mouseOver(screen.getByLabelText("搜索框"));
+
+    await waitFor(() =>
+      expect(document.body.querySelector(".cur-figure-wrap")).toHaveClass(
+        "cur--native"
+      )
+    );
+    // 输入类控件不发气泡，也不再算「可点击悬停」
+    expect(document.body.querySelector(".cur-label")).toBeNull();
+    expect(document.body.querySelector(".cur-figure-wrap")).not.toHaveClass(
+      "cur--over"
+    );
+
+    await settleSprings();
     restore();
   });
 });

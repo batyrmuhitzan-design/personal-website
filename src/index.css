@@ -92,17 +92,21 @@ html.theme-switching body *::after {
    （SPI_GETCLIENTAREAANIMATION = False、注册表 MinAnimate = 0），
    Chrome 因此上报 prefers-reduced-motion: reduce。
    站里原本跟着系统一刀切（reduce 时 animation: none !important），
-   结果是整站仅有的两处「会动的道具」全废：
+   结果是整站的「会动的道具」全废：
      · 黑胶唱片永远不转、唱针瞬移（唱机变静态图）
-     · 光标卡通人物永远不眨眼
+     · 光标小人永远不眨眼
+     · Lenis 平滑滚动从不接管（滚轮退回一格一格的原始手感）
+     · 标题 / 卡片的滚动入场与视差永不播放
    所以把「装饰性动效」的最终裁决权收到站点自己手里：
 
      --motion-play-state: running  → 常开（当前选择：画面要会动）
      --motion-play-state: paused   → 跟随系统，把下面那段注释打开即可
 
-   注意两条边界：
-     · 只影响「装饰性动效」（唱片自转 / 唱针 / 光标卡通），
+   注意三条边界：
+     · 只影响「装饰性动效」（唱片自转 / 唱针 / 光标小人 / 平滑滚动 / 入场视差 / 切页遮罩），
        不影响播放逻辑与信息表达；
+     · 置为 paused 时：入场动画直接以「终止状态」呈现（内容一帧都不少）、
+       视差与切换遮罩完全不出现 —— 关动效 ≠ 丢内容；
      · 换肤过渡（html.theme-switching）仍然尊重系统设置 ——
        它属于辅助性淡入淡出，关掉不丢信息，见上面那段 @media。
    -------------------------------------------------------------------------- */
@@ -217,4 +221,52 @@ html.lenis {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/* ==========================================================================
+   动效体系（平滑滚动 / 入场 / 视差 / 无缝切页）
+   --------------------------------------------------------------------------
+   这里只放「跨页面复用」的几条静态样式，组件级动画由组件自己负责：
+     · Reveal      —— src/components/Reveal.tsx   （滚动入场，样式走内联）
+     · Parallax    —— src/components/Parallax.tsx （视差层）
+     · PageTransition / RouteCurtain —— src/components/PageTransition.tsx
+     · 自定义光标   —— src/components/cursorStyles.ts（运行时注入，不在这里）
+   装饰性动效的播放 / 暂停统一读 --motion-play-state（见上面那段说明）。
+   ========================================================================== */
+
+/* 入场元素的合成层提示：避免首帧因为「刚变成 transform 元素」而闪一下。
+   will-change 只在元素本身，不会层层提升（页面里这类元素是有限的几十个）。 */
+.reveal {
+  will-change: transform, opacity;
+}
+
+/* 视差层：只改 transform，不触发重排 */
+.parallax-layer {
+  will-change: transform;
+}
+
+/* 视差用在弹性布局（如首页插图列、头像列）里时的通用包装：
+   撑满宽度 + 居中，避免百分比宽度的子元素因为多了一层 div 而塌成 0 */
+.parallax-fill {
+  width: 100%;
+}
+
+/* 切页外壳：本身不产生视觉，只负责给内部页面留出转场的上下文 */
+.page-transition {
+  display: block;
+}
+
+/* 全屏遮罩平移：路由切换时从下往上扫过一次
+   · pointer-events: none —— 绝不拦截点击（哪怕正在动画）
+   · 用 createPortal 挂在 body 上，所以这里只依赖 fixed 定位
+   · 颜色取 --overlay（与 LoadingScreen 同一块底色），扫过时没有白闪 */
+.route-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 9000; /* 低于 Header 的层级之上、低于自定义光标（2147483647） */
+  pointer-events: none;
+  background: var(--overlay);
+  will-change: transform;
+  /* 前缘一条 2px 发丝线，让「扫过」这件事有明确的边界感 */
+  border-top: 2px solid var(--accent-line);
 }

@@ -1,21 +1,38 @@
 import React, { useEffect } from "react";
 import Lenis from "@studio-freight/lenis";
+import profile from "../portfolio.config";
 
 /**
  * 全局平滑滚动（Lenis）
  * ------------------------------------------------------------------
  * · 用 useEffect 初始化 Lenis、连上 rAF 循环，卸载时销毁实例并移除样式
+ * · 参数（时长 / 缓动指数）从 portfolio.config 的 motion.lenis 读，改配置即可调手感
  * · 和 framer-motion 不冲突：Lenis 改的是「真实滚动位置」（window.scrollY），
  *   不是给内容容器套 transform，所以 useScroll / useTransform 量到的进度始终准确。
  *   （如果哪天把 Lenis 换成 transform 方案，framer-motion 的滚动测量才会开始飘）
  * · 内部滚动区域（例如播放器歌单）加 data-lenis-prevent 即可交还给原生滚动，
  *   Lenis 会沿事件 composedPath 向上查找该属性
- * · 没有 ResizeObserver 的环境（jsdom、老 Safari）或用户开启「减少动态效果」时，
- *   自动回退到系统原生滚动，页面依然可用
+ * · 没有 ResizeObserver 的环境（jsdom、老 Safari）自动回退到系统原生滚动，页面依然可用
+ * · 是否接管只认站内开关 --motion-play-state，不认系统的 prefers-reduced-motion：
+ *   站长这台机器的系统「动画效果」是关闭的（SPI_GETCLIENTAREAANIMATION = False），
+ *   Chrome 因此一直上报 reduce —— 跟随系统就等于「平滑滚动永远不生效」。
+ *   想跟随系统只改 src/index.css 里那一个变量，无需改本文件。
  */
 
-/** 缓动曲线：前段快、末段平滑收尾 */
-const easing = (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t));
+/** 配置（都有默认值，配置缺字段也不会出事） */
+const LENIS_CONFIG: { duration?: number; easingExponent?: number } =
+  (profile && profile.motion && profile.motion.lenis) || {};
+
+const LENIS_DURATION =
+  typeof LENIS_CONFIG.duration === "number" ? LENIS_CONFIG.duration : 1.1;
+const LENIS_EASING_EXPONENT =
+  typeof LENIS_CONFIG.easingExponent === "number"
+    ? LENIS_CONFIG.easingExponent
+    : 4.2;
+
+/** 缓动曲线：前段快、末段平滑收尾（指数越大收尾越「沉」） */
+const makeEasing = (exponent: number) => (t: number) =>
+  Math.min(1, 1.001 - Math.pow(2, -exponent * t));
 
 /** Lenis 会在 <html> 上挂类名，这几条是它官方推荐的配套样式 */
 const LENIS_CSS = `
@@ -56,18 +73,29 @@ type SmoothScrollProps = {
   enabled?: boolean;
 };
 
+/** 站内「装饰性动效」总开关是否处于暂停（变量定义在 src/index.css） */
+function motionPaused(): boolean {
+  if (
+    typeof window === "undefined" ||
+    typeof window.getComputedStyle !== "function"
+  ) {
+    return false;
+  }
+  return (
+    window
+      .getComputedStyle(document.documentElement)
+      .getPropertyValue("--motion-play-state")
+      .trim() === "paused"
+  );
+}
+
 /** 当前环境是否适合接管滚动 */
 function canTakeOverScroll(): boolean {
   if (typeof window === "undefined") return false;
   // Lenis 内部靠 ResizeObserver 测量内容高度，没有它就别接管（否则状态会算错）
   if (typeof window.ResizeObserver !== "function") return false;
-  // 尊重系统「减少动态效果」：惯性滚动本身就是一种动态效果
-  if (
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  ) {
-    return false;
-  }
+  // 惯性滚动属于「装饰性动效」：裁决权交给站内开关，理由见文件头
+  if (motionPaused()) return false;
   return true;
 }
 
@@ -76,8 +104,8 @@ function SmoothScroll({ children, enabled = true }: SmoothScrollProps) {
     if (!enabled || !canTakeOverScroll()) return undefined;
 
     const lenis = new Lenis({
-      duration: 1.1,
-      easing,
+      duration: LENIS_DURATION,
+      easing: makeEasing(LENIS_EASING_EXPONENT),
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 1.5,

@@ -3,6 +3,7 @@ import { Container, Row, Col, Button } from "react-bootstrap";
 import Particle from "../Particle";
 import { AiOutlineDownload, AiOutlineMail } from "react-icons/ai";
 import resumePdf from "../../Assets/Shasha_Resume.pdf";
+import Reveal from "../Reveal";
 import profile from "../../portfolio.config";
 
 const experience = [
@@ -66,70 +67,80 @@ function ResumeNew() {
 
           <Row className="resume" style={{ justifyContent: "center" }}>
             <Col md={10} className="resume-left">
-              <h1 className="project-heading" style={{ textAlign: "left" }}>
-                个人<strong className="purple">简介</strong>
-              </h1>
-              <div className="resume-item zh-text">
-                <p style={{ textAlign: "left" }}>
-                  {profile.name}（{profile.nameEn}），{profile.role}
-                  。喜欢用工程化与自动化的方式解决问题，从需求拆解、界面实现、接口开发到
-                  Docker 部署都能独立完成。目前接受远程协作与项目合作。
-                </p>
-                <p style={{ textAlign: "left" }}>
-                  邮箱：{profile.email} ｜ 所在地：{profile.location}
-                </p>
-              </div>
+              <Reveal direction="up">
+                <h1 className="project-heading" style={{ textAlign: "left" }}>
+                  个人<strong className="purple">简介</strong>
+                </h1>
+                <div className="resume-item zh-text">
+                  <p style={{ textAlign: "left" }}>
+                    {profile.name}（{profile.nameEn}），{profile.role}
+                    。喜欢用工程化与自动化的方式解决问题，从需求拆解、界面实现、接口开发到
+                    Docker 部署都能独立完成。目前接受远程协作与项目合作。
+                  </p>
+                  <p style={{ textAlign: "left" }}>
+                    邮箱：{profile.email} ｜ 所在地：{profile.location}
+                  </p>
+                </div>
 
-              <h3 className="resume-title">工作经历</h3>
-              {experience.map((item) => (
-                <div className="resume-item" key={item.title + item.period}>
-                  <h4 className="resume-subtitle">
-                    {item.title} · {item.org}
-                  </h4>
-                  <p className="resume-period">{item.period}</p>
+              </Reveal>
+              <Reveal direction="up" delay={0}>
+                <h3 className="resume-title">工作经历</h3>
+                {experience.map((item) => (
+                  <div className="resume-item" key={item.title + item.period}>
+                    <h4 className="resume-subtitle">
+                      {item.title} · {item.org}
+                    </h4>
+                    <p className="resume-period">{item.period}</p>
+                    <ul>
+                      {item.points.map((point) => (
+                        <li className="about-activity" key={point}>
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+
+              </Reveal>
+              <Reveal direction="up" delay={0.04}>
+                <h3 className="resume-title">核心技能</h3>
+                <div className="resume-item">
                   <ul>
-                    {item.points.map((point) => (
-                      <li className="about-activity" key={point}>
-                        {point}
+                    {skills.map((skill) => (
+                      <li className="about-activity" key={skill.label}>
+                        <b className="purple">{skill.label}：</b>
+                        {skill.value}
                       </li>
                     ))}
                   </ul>
                 </div>
-              ))}
 
-              <h3 className="resume-title">核心技能</h3>
-              <div className="resume-item">
-                <ul>
-                  {skills.map((skill) => (
-                    <li className="about-activity" key={skill.label}>
-                      <b className="purple">{skill.label}：</b>
-                      {skill.value}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              </Reveal>
+              <Reveal direction="up" delay={0.08}>
+                <h3 className="resume-title">教育背景</h3>
+                <div className="resume-item">
+                  <h4 className="resume-subtitle">计算机相关专业 · 本科</h4>
+                  <p className="resume-period">2016 — 2020</p>
+                  <p style={{ textAlign: "left" }}>
+                    在校期间系统学习计算机基础、数据结构与算法、数据库与计算机网络，
+                    并通过个人项目与开源实践持续积累工程经验。
+                  </p>
+                </div>
 
-              <h3 className="resume-title">教育背景</h3>
-              <div className="resume-item">
-                <h4 className="resume-subtitle">计算机相关专业 · 本科</h4>
-                <p className="resume-period">2016 — 2020</p>
-                <p style={{ textAlign: "left" }}>
-                  在校期间系统学习计算机基础、数据结构与算法、数据库与计算机网络，
-                  并通过个人项目与开源实践持续积累工程经验。
-                </p>
-              </div>
-
-              <h3 className="resume-title">关于这份简历</h3>
-              <div className="resume-item">
-                <p style={{ textAlign: "left" }}>
-                  页面上的时间线与技能为示例内容，
-                  请按自己的真实经历修改{" "}
-                  <code>src/components/Resume/ResumeNew.js</code>；
-                  PDF 由 <code>scripts/make-resume-pdf.mjs</code> 生成，
-                  或直接替换{" "}
-                  <code>src/Assets/{profile.resumeFile}</code> 为你自己的简历。
-                </p>
-              </div>
+              </Reveal>
+              <Reveal direction="up" delay={0.12}>
+                <h3 className="resume-title">关于这份简历</h3>
+                <div className="resume-item">
+                  <p style={{ textAlign: "left" }}>
+                    页面上的时间线与技能为示例内容，
+                    请按自己的真实经历修改{" "}
+                    <code>src/components/Resume/ResumeNew.js</code>；
+                    PDF 由 <code>scripts/make-resume-pdf.mjs</code> 生成，
+                    或直接替换{" "}
+                    <code>src/Assets/{profile.resumeFile}</code> 为你自己的简历。
+                  </p>
+                </div>
+              </Reveal>
             </Col>
           </Row>
 
