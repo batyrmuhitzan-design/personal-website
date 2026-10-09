@@ -294,6 +294,11 @@ bash scripts/deploy-prebuilt.sh --no-build   # 复用现有 build/，跳过本�
 bash scripts/deploy-prebuilt.sh --rollback   # 回滚：把 :previous 镜像换回 :latest 并重建容器
 ```
 
+> 本机 `bash` **不在 PATH 里**（`where bash` 找不到，也没有 WSL），实际路径是
+> `E:\pycham11\Git\bin\bash.exe`（PyCharm 自带的 Git for Windows）。
+> 从 PowerShell 调用要写全路径：
+> `& 'E:\pycham11\Git\bin\bash.exe' 'E:/个人网/scripts/deploy-prebuilt.sh'`
+
 ```powershell
 # 没装 bash 时（纯 PowerShell 等价流程，2026-10-09 验证通过）
 cd E:\个人网
