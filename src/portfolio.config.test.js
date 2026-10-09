@@ -1,4 +1,5 @@
 import profile from "./portfolio.config";
+import { PIXEL_CHARACTERS, findCharacter } from "./lib/pixelArt";
 
 /**
  * 个人信息配置的冒烟测试：
@@ -62,6 +63,19 @@ describe("portfolio.config · 自定义光标", () => {
     expect(cursor.skin).toBe("pixel");
     expect(cursor.spriteUrl).toBe("");
   });
+
+  it("随机皮肤：randomSkin 是布尔；填了 character 就必须是有效角色（写错要当场报出来）", () => {
+    expect(typeof cursor.randomSkin).toBe("boolean");
+    expect(["string", "number"]).toContain(typeof cursor.character);
+
+    if (cursor.character !== "") {
+      // 找不到角色 = 配置写错了：CustomCursor 会静默回落到随机 / 默认，
+      // 那种「我明明写了却没生效」最难查，所以在这里直接钉死
+      expect(findCharacter(cursor.character)).not.toBeNull();
+    }
+    // 角色库本身至少 10 位，随机皮肤才有意义
+    expect(PIXEL_CHARACTERS.length).toBeGreaterThanOrEqual(10);
+  });
 });
 
 describe("portfolio.config · 动效体系（Lenis）", () => {
@@ -75,6 +89,28 @@ describe("portfolio.config · 动效体系（Lenis）", () => {
     expect(typeof lenis.easingExponent).toBe("number");
     expect(lenis.easingExponent).toBeGreaterThanOrEqual(1);
     expect(lenis.easingExponent).toBeLessThanOrEqual(10);
+  });
+
+  it("触屏 / 滚轮参数齐全，且 duration 与 lerp 不会同时生效（Lenis 内部二选一）", () => {
+    expect(typeof lenis.wheelMultiplier).toBe("number");
+    expect(lenis.wheelMultiplier).toBeGreaterThan(0);
+    expect(typeof lenis.touchMultiplier).toBe("number");
+    expect(lenis.touchMultiplier).toBeGreaterThan(0);
+    expect(typeof lenis.syncTouch).toBe("boolean");
+
+    if (lenis.syncTouch) {
+      // 开着 syncTouch 才需要这两个：插值速度（0~1）与惯性衰减倍率
+      expect(typeof lenis.syncTouchLerp).toBe("number");
+      expect(lenis.syncTouchLerp).toBeGreaterThan(0);
+      expect(lenis.syncTouchLerp).toBeLessThanOrEqual(1);
+      expect(typeof lenis.touchInertiaMultiplier).toBe("number");
+      expect(lenis.touchInertiaMultiplier).toBeGreaterThan(1);
+    }
+
+    expect(typeof lenis.lerp).toBe("number");
+    // Lenis 源码里 `lerp = !duration && 0.1`：duration 与 lerp 只能活一个，
+    // 两个都填会让人误以为「会更顺」，实际只有一个在起作用
+    expect(Number(lenis.lerp) > 0 && Number(lenis.duration) > 0).toBe(false);
   });
 
   it("入场 / 视差 / 切页的开关不放在配置里，而是 CSS 变量 --motion-play-state", () => {

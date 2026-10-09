@@ -167,14 +167,29 @@ html.theme-switching body *::after {
    隐藏默认鼠标光标
    说明：CustomCursor 组件运行时也会注入同一套规则并给 <html> 打上
    has-custom-cursor 类；这里再静态写一份作为兜底 / 文档化，内容一致不冲突。
-   只作用于「精确指针 + 支持 hover」的设备，触屏设备保持原生光标。
+   ⚠️ 「彻底」隐藏：连 ::before / ::after 与输入类控件都一并 none，
+   任何区域都不允许露出原生箭头（悬停输入框时改由键盘箭头变形成
+   像素竖线 .cur--text 来暗示「这里能打字」，见 src/components/cursorStyles.ts）。
    -------------------------------------------------------------------------- */
 @media (hover: hover) and (pointer: fine) {
   html.has-custom-cursor,
   html.has-custom-cursor body,
-  html.has-custom-cursor body * {
+  html.has-custom-cursor *,
+  html.has-custom-cursor *::before,
+  html.has-custom-cursor *::after {
     cursor: none !important;
   }
+}
+
+/* --------------------------------------------------------------------------
+   滚动边界：掐断「滚动链」
+   Chrome 到顶 / 到底时会继续把滚动传给父级或浏览器层（橡皮筋 + 刷新），
+   表现就是顶端底端突然一顿。Lenis 1.0.42 没有对应的 overscroll 选项，
+   所以由这条 CSS 解决（SmoothScroll 组件也会注入同一份）。
+   -------------------------------------------------------------------------- */
+html,
+body {
+  overscroll-behavior-y: none;
 }
 
 /* --------------------------------------------------------------------------

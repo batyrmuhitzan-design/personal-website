@@ -47,20 +47,27 @@ const profile = {
   resumeFile: "Shasha_Resume.pdf",
 
   /* ---------------- 自定义光标（由 src/components/CustomCursor.tsx 读取） ----------------
-     皮肤：pixel = 内置「赛博像素小人」（默认，内联 SVG，颜色随主题反相）
+     皮肤：pixel = 内置「像素小人 + 像素箭头」（默认，内联 SVG，颜色随主题反相）
            cartoon = 手绘矢量卡通小人（原有皮肤，会眨眼 / 挥手 / 咧嘴）
+     randomSkin：true = 每次刷新页面从内置 10 种像素角色里随机抽一个（Math.random），
+                 想让某一位固定出场就把它设成 false，再用 character 指定
+     character：角色 id 或序号（见 src/lib/pixelArt.ts 的 PIXEL_CHARACTERS）。
+                留空 = 跟随 randomSkin；填了就以它为准（方便截图 / 做视觉回归）
      spriteUrl：填自己的图片就能整体替换图案（支持 PNG / GIF / SVG，动画 GIF 会自己播）
                 · 图片放 public/ 就写 "/cursor.png"（文件名别用中文）
                 · 也可以用 import 把资源交给打包器（见 CustomCursor.tsx 顶部注释）
-                · 留空 = 用内置像素小人
+                · 留空 = 用内置像素小人（注意：填了它 randomSkin 就不生效）
      spriteWidth：精灵显示宽度（px），高度按图案比例自动算，不写默认 30
      tilt：悬停到可点击元素（a / button / [data-cursor="pointer"] …）时的旋转角度（deg），
            设 0 就只放大不旋转
      enabled：false = 整体关掉，回到系统光标
-     补充：输入框 / textarea / [contenteditable] 会自动交还系统光标（文本插入点体验） */
+     说明：原生光标是「彻底」隐藏的（连输入框都不再交还系统光标），
+           悬停输入框时箭头会变成像素竖线（.cur--text），保留文本插入点的心理暗示 */
   cursor: {
     enabled: true,
     skin: "pixel",
+    randomSkin: true,
+    character: "",
     spriteUrl: "",
     spriteWidth: 30,
     tilt: 8,
@@ -68,14 +75,29 @@ const profile = {
 
   /* ---------------- 动效体系（平滑滚动 / 入场 / 视差 / 切页） ----------------
      平滑滚动：Lenis，参数在下面 motion.lenis（场景见 src/components/SmoothScroll.tsx）
-       · duration：滚轮松手后「滑行」多久，越大越沉
-       · easingExponent：收尾指数，越大末段越慢越「贵」
+       · duration：滚轮松手后「滑行」多久，越大越沉。0.8~1.0 是「丝滑但不迟钝」的甜点区
+       · easingExponent：收尾指数，越大末段越慢越「贵」；3.6 比 4.2 更跟手
+       · wheelMultiplier：滚轮速度倍率（1 = 原生一格就是它自己）
+       · touchMultiplier：触屏拖动倍率，略大一点更接近手指滑动的惯性预期
+       · syncTouch：true = 触屏也交给 Lenis 做插值（默认 false 是「触屏用原生滚动」）。
+                     开着更顺，代价是 iOS 原生的橡皮筋手感会变；
+                     @studio-freight/lenis@1.0.42 没有 overscroll 选项，
+                     「触顶 / 触底顿挫」由 CSS 的 overscroll-behavior: none 解决
+                     （见 src/components/SmoothScroll.tsx 注入的 LENIS_CSS）
+       · syncTouchLerp / touchInertiaMultiplier：上面那套的插值速度与惯性衰减
+       · lerp：想用「固定插值」而不是 duration 曲线时填它（填了则忽略 duration）
      入场 / 视差 / 切页动画的开关**不在这里**：统一是 CSS 变量 --motion-play-state
      （默认 running，定义与说明在 src/index.css，改一处即可让全站动效静音） */
   motion: {
     lenis: {
-      duration: 1.05,
-      easingExponent: 4.2,
+      duration: 0.85,
+      easingExponent: 3.6,
+      wheelMultiplier: 1,
+      touchMultiplier: 1.6,
+      syncTouch: true,
+      syncTouchLerp: 0.11,
+      touchInertiaMultiplier: 28,
+      lerp: 0,
     },
   },
 
