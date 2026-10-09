@@ -2,18 +2,21 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react-dom/test-utils";
 import CustomCursor from "./CustomCursor";
+import { PIXEL_CHARACTERS } from "../lib/pixelArt";
 
 /**
  * 自定义光标测试（jsdom）
  * ------------------------------------------------------------------
- * 光标的两条核心路径里，弹簧动画（小人跟随、hover 放大）与 CSS 动画
- * （眨眼 / 呼吸 / 挥手）依赖真实渲染帧，这里只覆盖确定性的部分，
+ * 光标的两条核心路径里，形变弹簧（hover 放大、透明度）与 CSS 动画
+ * （眨眼 / 呼吸 / 天线闪烁）依赖真实渲染帧，这里只覆盖确定性的部分，
  * 避免测试随机失败：
  *   1) 非「精确指针」设备：什么都不渲染，也不改 <html>、不注入样式；
- *   2) 精确指针设备：两个光标元素（卡通小人 + 小箭头）挂在 body 下、
- *      <html> 打上标记类、注入隐藏原生光标与卡通动画的样式；
- *   3) 鼠标移动时小箭头（不吃弹簧）立即跟到坐标上；
- *   4) 卸载后标记类与注入的样式都被清理干净。
+ *   2) 精确指针设备：两个光标元素（像素小人 + 像素箭头）挂在 body 下、
+ *      <html> 打上标记类、注入隐藏原生光标与皮肤动画的样式；
+ *   3) 鼠标移动时箭头与小人**同帧**跟到坐标上（位置零弹簧）；
+ *   4) 悬停 / 文本区：cur--over / cur--text 状态类正确；
+ *   5) 角色选择：默认随机、characterId 固定、randomSkin=false 回落默认；
+ *   6) 卸载后标记类与注入的样式都被清理干净。
  */
 
 const ACTIVE_CLASS = "has-custom-cursor";
@@ -180,7 +183,7 @@ describe("CustomCursor · 悬停状态", () => {
     restore();
   });
 
-  test("悬停在输入类控件上：交还系统光标（cur--native，两层淡出）", async () => {
+  test("悬停在输入类控件上：箭头换成像素竖线（cur--text），不再露出第二个光标", async () => {
     const restore = mockPointerDevice(true);
     render(<CustomCursor />);
     await nextFrame();
@@ -190,17 +193,133 @@ describe("CustomCursor · 悬停状态", () => {
     fireEvent.mouseOver(screen.getByLabelText("搜索框"));
 
     await waitFor(() =>
-      expect(document.body.querySelector(".cur-figure-wrap")).toHaveClass(
-        "cur--native"
-      )
+      expect(document.body.querySelector(".cur-arrow")).toHaveClass("cur--text")
     );
     // 输入类控件不发气泡，也不再算「可点击悬停」
     expect(document.body.querySelector(".cur-label")).toBeNull();
     expect(document.body.querySelector(".cur-figure-wrap")).not.toHaveClass(
       "cur--over"
     );
+    // 两层都还在（全局 cursor: none 依然生效），只是箭头被竖线顶替
+    expect(document.body.querySelectorAll('div[aria-hidden="true"]').length).toBe(2);
 
     await settleSprings();
+    restore();
+  });
+});
+
+/**
+ * 第二轮（第二轮细节重构）新增：
+ *   · 光标本体从「弹簧拖尾」改成 1:1 跟手（位置不再有延迟）；
+ *   · 内置角色扩到 10 位，可随机皮肤 / 固定皮肤；
+ *   · 箭头换成像素图案（11×15 格，尖端在左上角）。
+ */
+describe("CustomCursor · 像素箭头与小人的跟手", () => {
+  test("箭头是像素 SVG：crispEdges、有像素矩形，且不再用旧的手绘 path", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor />);
+    await nextFrame();
+
+    const arrow = document.body.querySelector("svg.cur-arrow-px");
+    expect(arrow).not.toBeNull();
+    expect(arrow).toHaveAttribute("shape-rendering", "crispEdges");
+    expect(Number(arrow.getAttribute("data-pixel-rects"))).toBeGreaterThan(0);
+    // 旧实现是一条 <path>，新实现全部是合并后的 <rect>
+    expect(arrow.querySelector("path")).toBeNull();
+    expect(arrow.querySelectorAll("rect").length).toBeGreaterThan(0);
+
+    restore();
+  });
+
+  test("鼠标移动时箭头与小人同帧跟到坐标上（小人不再有弹簧拖尾）", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor />);
+    await nextFrame();
+
+    act(() => {
+      window.dispatchEvent(
+        new MouseEvent("mousemove", { clientX: 123, clientY: 45, bubbles: true })
+      );
+    });
+    await nextFrame();
+
+    const [figure, arrow] = document.body.querySelectorAll(
+      'div[aria-hidden="true"]'
+    );
+    const figureStyle = figure.getAttribute("style") || "";
+    const arrowStyle = arrow.getAttribute("style") || "";
+
+    expect(figureStyle).toContain("translateX(123px)");
+    expect(figureStyle).toContain("translateY(45px)");
+    expect(arrowStyle).toContain("translateX(123px)");
+    expect(arrowStyle).toContain("translateY(45px)");
+
+    await settleSprings();
+    restore();
+  });
+
+  test("光标进入文本区时，箭头层挂上 cur--text（像素竖线接管插入点提示）", async () => {
+    const restore = mockPointerDevice(true);
+    const { container } = render(<CustomCursor />);
+    await nextFrame();
+
+    render(<textarea aria-label="简介" />);
+    fireEvent.mouseOver(screen.getByLabelText("简介"));
+    await waitFor(() =>
+      expect(document.body.querySelector(".cur-arrow")).toHaveClass("cur--text")
+    );
+
+    // 移出文本区（回到普通区域）后恢复箭头
+    fireEvent.mouseOver(container.ownerDocument.body);
+    await waitFor(() =>
+      expect(document.body.querySelector(".cur-arrow")).not.toHaveClass(
+        "cur--text"
+      )
+    );
+
+    await settleSprings();
+    restore();
+  });
+
+  test("characterId：固定某一位角色（可复现）；randomSkin=false 时回落到第一位", async () => {
+    const restore = mockPointerDevice(true);
+    const { unmount } = render(<CustomCursor characterId="robot" />);
+    await nextFrame();
+
+    expect(
+      document.body.querySelector(".cur-figure-wrap").getAttribute(
+        "data-cursor-character"
+      )
+    ).toBe("robot");
+    expect(document.body.querySelector("svg.cur-pixel--builtin")).toHaveAttribute(
+      "data-character",
+      "robot"
+    );
+
+    unmount();
+    render(<CustomCursor randomSkin={false} />);
+    await nextFrame();
+
+    expect(
+      document.body.querySelector(".cur-figure-wrap").getAttribute(
+        "data-cursor-character"
+      )
+    ).toBe("cyber");
+
+    restore();
+  });
+
+  test("随机皮肤：不需要参数，抽到的角色一定来自内置角色表", async () => {
+    const restore = mockPointerDevice(true);
+    const { unmount } = render(<CustomCursor />);
+    await nextFrame();
+
+    const id = document.body
+      .querySelector(".cur-figure-wrap")
+      .getAttribute("data-cursor-character");
+    expect(PIXEL_CHARACTERS.map((item) => item.id)).toContain(id);
+
+    unmount();
     restore();
   });
 });

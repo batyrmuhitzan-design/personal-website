@@ -5,10 +5,18 @@
  * 卸载时整块移除 —— 因此它们只在该启用的时候存在，不会影响触屏设备。
  *
  * 拆成独立模块的原因：
- *   1) CSS 很长（像素小人 + 卡通小人两套动画），混在组件里会淹没逻辑；
+ *   1) CSS 很长（像素小人 + 卡通小人 + 箭头两套动画），混在组件里会淹没逻辑；
  *   2) 样式与「皮肤」一一对应，加新皮肤时只在这里追加一段；
  *   3) 静态兜底写在 src/index.css（只有 cursor: none 那几条），
  *      这里负责动态部分，职责分开。
+ *
+ * 第二轮改造要点：
+ *   · cursor: none 升级为「彻底隐藏」——连 ::before / ::after 一起 none，
+ *     并且**不再**给输入类控件交还系统光标（那样会露出原生箭头 / 文本光标，
+ *     和自定义光标同屏并存，观感就是「两个光标」）；
+ *     取而代之的是 .cur--text：箭头淡出、像素竖线出现，保留「这里能打字」的暗示；
+ *   · 新增像素箭头（.cur-arrow-px）与像素竖线（.cur-caret）；
+ *   · 小人不再走弹簧（改为帧级跟手），因此这里不需要任何「追赶」相关过渡。
  */
 
 /** 挂在 <html> 上的标记类：把「隐藏系统光标」限定在光标启用期间 */
@@ -16,23 +24,72 @@ export const ACTIVE_CLASS = "has-custom-cursor";
 
 export const CURSOR_CSS = `
 @media (hover: hover) and (pointer: fine) {
+  /* ⚠️ 彻底隐藏原生光标：通配符 + 伪元素一起 none。
+     只要漏掉一类元素（例如 input），在它上面就会露出一角原生指针，
+     而自定义光标还在旁边画 —— 观感上就是「两个光标」。 */
   html.${ACTIVE_CLASS},
   html.${ACTIVE_CLASS} body,
-  html.${ACTIVE_CLASS} body * {
+  html.${ACTIVE_CLASS} *,
+  html.${ACTIVE_CLASS} *::before,
+  html.${ACTIVE_CLASS} *::after {
     cursor: none !important;
   }
-
-  /* 输入类控件交还系统光标：规则写在元素自身（同特异度、位置更靠后 → 后者胜）。
-     这样「看起来」是系统文本光标；与此同时组件会给两层加 .cur--native 让它们淡出，
-     不会出现「系统箭头 + 自定义小人」叠在一起。 */
-  html.${ACTIVE_CLASS} body input,
-  html.${ACTIVE_CLASS} body textarea,
-  html.${ACTIVE_CLASS} body select,
-  html.${ACTIVE_CLASS} body [contenteditable='true'],
-  html.${ACTIVE_CLASS} body [data-cursor='native'] {
-    cursor: auto !important;
-  }
 }
+
+/* ==========================================================================
+   图层一：像素箭头 + 像素文本竖线（精准定位点，跟随鼠标的永远是它）
+   --------------------------------------------------------------------------
+   · 箭头图案来自 src/lib/pixelArt.ts 的 PIXEL_ARROW，尖端在 (0,0)，
+     外盒左上角严格咬住鼠标坐标 → 配合 shape-rendering: crispEdges，
+     像素块才是方的、不抗锯齿；
+   · 颜色复用角色的 CSS 变量（--cur-px-line / --cur-px-face）：
+     浅色主题黑边白箭头、深色主题白边黑箭头，悬停可点击元素时整体反相。
+   ========================================================================== */
+.cur-arrow,
+.cur-arrow-px {
+  display: block;
+}
+
+.cur-arrow-px {
+  shape-rendering: crispEdges;
+}
+
+.cur--over .cur-arrow-px {
+  --cur-px-line: var(--accent);
+  --cur-px-face: var(--accent-contrast);
+}
+
+/* 按下时整体挪一格像素：比缩放更「像素」，也更便宜 */
+.cur--press .cur-arrow-px {
+  transform: translate(1px, 1px);
+}
+
+/* ---------- 文本插入点：原生文本光标已全局禁用，这里自己画一根像素竖线 ---------- */
+.cur-caret {
+  position: absolute;
+  top: -2px;
+  left: -1px;
+  display: none;
+  width: 3px;
+  height: 18px;
+  background: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--bg-primary);
+  animation: cur-caret-blink 1.1s steps(2, end) infinite;
+}
+
+.cur--text .cur-arrow-px {
+  display: none;
+}
+
+.cur--text .cur-caret {
+  display: block;
+}
+
+@keyframes cur-caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
 
 /* ==========================================================================
    皮肤一：像素小人（skin="pixel"）
@@ -65,12 +122,6 @@ export const CURSOR_CSS = `
   --cur-px-face: var(--accent);
 }
 
-/* 交还系统光标（输入框等）时，卡通/像素小人与箭头一起淡出 */
-.cur--native .cur-figure-wrap,
-.cur--native .cur-arrow {
-  opacity: 0 !important;
-}
-
 /* 像素小人的待机浮动：整数像素位移，边缘始终对齐设备像素 */
 @keyframes cur-pixel-bob {
   0%, 100% { transform: translateY(0); }
@@ -85,9 +136,11 @@ export const CURSOR_CSS = `
 
 /* 站内开关必须在 animation 简写之后落笔（同特异度、后者胜） */
 .cur-pixel,
-.cur-px--glow {
+.cur-px--glow,
+.cur-caret {
   animation-play-state: var(--motion-play-state, running);
 }
+
 
 /* ==========================================================================
    皮肤二：卡通小人（skin="cartoon"）· 原有皮肤，保留可选

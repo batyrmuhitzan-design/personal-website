@@ -1,61 +1,74 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import profile from "../portfolio.config";
 import CursorCartoon from "./CursorCartoon";
-import { PixelCharacter, SpriteImage } from "./CursorSprite";
+import { PixelArrow, PixelCharacter, SpriteImage } from "./CursorSprite";
+import { findCharacter, pickRandomCharacter, PIXEL_CHARACTERS } from "../lib/pixelArt";
 import { ACTIVE_CLASS, CURSOR_CSS } from "./cursorStyles";
 
 /**
- * 自定义光标 · 多皮肤（pixel 像素小人 / cartoon 卡通小人）
+ * 自定义光标 · 像素箭头 + 随机像素小人
  * ==========================================================================
- * 隐藏系统默认光标，改由两个 DOM 层绘制：
+ * 隐藏系统默认光标，改由两个 DOM 层绘制（都挂 createPortal 到 body）：
  *
- * ① 主角（在前）—— 皮肤由 portfolio.config 的 cursor.skin 决定：
- *     ‣ pixel  ：内置「赛博像素小人」（内联 SVG，12×16 格，crispEdges），
- *                 或站长自己的 PNG / GIF / SVG（cursor.spriteUrl）；
- *                 常态：像素呼吸浮动 + 天线闪烁（CSS steps，一格一格跳）；
- *                 悬停可点击元素：放大 + 轻微旋转 + 护目镜 / 天线反相；
- *                 按下：缩一下并反向轻转。
- *     ‣ cartoon：手绘矢量卡通小人（原有皮肤，保留）；眨眼 / 挥手 / 咧嘴 / 眯眼。
- *     x / y 各挂一条弹簧（useSpring(useMotionValue)）→ 被「拖着走」的延迟感；
- *     悬停 / 按下 / 旋转 / 透明度同样是弹簧，且全部由注入的 CSS 驱动，
- *     鼠标移动不会触发任何 React 重渲染。
+ * ① 像素箭头（图层一 · 精准定位）—— 图案是 pixelArt 的 PIXEL_ARROW，
+ *    尖端就在矩阵 (0,0)，盒子左上角严格咬住鼠标坐标 → 「指哪点哪」；
+ *    x / y 直接吃原始 motion value，**零弹簧零延迟**，鼠标动一格它动一格。
+ *    悬停在输入类控件上时，箭头淡出、换成一根像素竖线（.cur-caret）——
+ *    原生文本光标已经被全局禁用，这里必须自己补一个插入点提示。
  *
- * ② 小箭头（在后）—— 直接吃原始 motion value：零延迟跟手、尖端严格咬住鼠标坐标，
- *    保证「指哪点哪」的精度不被弹簧拖累。
+ * ② 像素小人（图层二 · 个性）—— 也是零弹簧，和箭头同一帧跟手（从前是弹簧
+ *    拖尾，鼠标停了它还在追，看着「不跟手」；现在只在悬停 / 按下时才有形变，
+ *    位置永远 1:1）。皮肤来自 pixelArt 的 10 位角色：
+ *    ‣ cursor.character 写 id 或序号 → 固定某一位；
+ *    ‣ 否则 cursor.randomSkin（默认开）→ 每次刷新随机抽一位；
+ *    ‣ 都关掉 → 第一位「赛博小人」。
+ *    形变（放大 / 旋转 / 淡入淡出）仍走弹簧，那点惯性反而是「手感」。
  *
  * 其余约定：
- * · 颜色只走设计令牌（--accent / --bg-primary / --text-primary）与光标的角色变量
- *   （--cur-px-*），深浅主题自动反相，任何背景上都自带反差轮廓；
- * · 用 createPortal 挂到 document.body：避免祖先的 transform / filter 让
- *   position: fixed 失效，或把绘制限制在某个局部层里；
+ * · 颜色只走设计令牌与光标角色变量（--cur-px-*），深浅主题自动反相，
+ *   任何背景上都自带反差描边（箭头是「黑边白箭头 / 白边黑箭头」）；
  * · 触屏 / 不支持 hover 的设备（matchMedia("(hover: hover) and (pointer: fine)")）
- *   直接不渲染 —— 移动端保持系统原生光标与触摸手感；
- * · 输入框 / textarea / select / [contenteditable] / [data-cursor="native"] 会
- *   交还系统光标（CSS 还原 cursor: auto，两层同时淡出），文本插入点体验不受影响；
- * · 装饰性动效的播放 / 暂停统一交给站内开关 --motion-play-state（见 src/index.css），
+ *   直接不渲染 —— 移动端保持系统原生手感（那时箭头也没有意义）；
+ * · 鼠标移动只写 motion value，不触发任何 React 重渲染（setState 只发生在
+ *   悬停 / 按下 / 进文本区这类低频事件上）；
+ * · 装饰性动效的播放 / 暂停统一交给站内开关 --motion-play-state（src/index.css），
  *   刻意不跟系统的 prefers-reduced-motion（站长机器的系统动画是关闭的，
  *   跟随系统 = 光标永不呼吸），想跟随系统只改 index.css 那一个变量。
  */
 
-/** 视为「可点击」的元素；额外支持用 data-cursor="pointer" 手动标记 */
+/**
+ * 视为「可点击」的元素；额外支持用 data-cursor="pointer" 手动标记。
+ * 说明：自绘下拉的选项按钮带 role="option"（不是 button），
+ * 因此这里同时认 role="button" / role="option" / [data-cursor='pointer']。
+ */
 const INTERACTIVE_SELECTOR = [
   "a[href]",
   "button",
   "select",
   "summary",
   "label",
+  "input[type='checkbox']",
+  "input[type='radio']",
+  "input[type='range']",
   "[role='button']",
+  "[role='option']",
+  "[role='menuitem']",
   "[data-cursor='pointer']",
 ].join(",");
 
-/** 需要「交还系统光标」的元素：输入类控件用文本光标才有插入点体验 */
-const NATIVE_CURSOR_SELECTOR = [
-  "input",
+/**
+ * 「文本区」：光标进入这些元素时换成像素竖线。
+ * 注意这不是「交还系统光标」—— 全局 cursor: none 依然生效，
+ * 我们只是把箭头换成插入点提示，避免同一位置出现两个光标。
+ */
+const TEXT_ZONE_SELECTOR = [
+  "input:not([type='checkbox']):not([type='radio']):not([type='range'])",
+  "input:not([type])",
   "textarea",
   "[contenteditable='true']",
-  "[data-cursor='native']",
+  "[data-cursor='text']",
 ].join(",");
 
 const FIGURE_WIDTH = 26; // 卡通小人显示宽度（px）；viewBox 为 44×52，等比高度见下
@@ -63,8 +76,10 @@ const FIGURE_HEIGHT = Math.round((FIGURE_WIDTH * 52) / 44); // ≈ 31px
 const PIXEL_WIDTH = 30; // 像素小人显示宽度（px）；viewBox 为 12×16，等比高度见下
 const PIXEL_HEIGHT = Math.round((PIXEL_WIDTH * 16) / 12); // 40px
 const FIGURE_OFFSET_Y = 8; // 小人整体下移：鼠标点落在它头顶上方，不遮挡点击目标
-const POINTER_WIDTH = 12; // 小箭头：viewBox 尖端在左上角 (0,0)，因此箭头严格咬住鼠标坐标
-const POINTER_HEIGHT = 19;
+/* 像素箭头：图案 11 列 × 15 行，尖端在 (0,0)。
+   13px 宽 → 高 = round(13 * 15 / 11) = 18px；方格约 1.18px，足够锐利又不顶眼 */
+const ARROW_WIDTH = 13;
+const ARROW_HEIGHT = Math.round((ARROW_WIDTH * 15) / 11);
 const OVER_SCALE = 1.14; // 悬停可点击元素时小人的放大倍数
 const PRESS_SCALE = 0.9; // 按下鼠标时小人缩一下
 const OVER_TILT = 8; // 悬停可点击元素时的轻微旋转（deg）
@@ -81,6 +96,8 @@ const CURSOR_CONFIG: {
   skin?: string;
   spriteUrl?: string;
   spriteWidth?: number;
+  character?: string | number;
+  randomSkin?: boolean;
   tilt?: number;
 } = (profile && profile.cursor) || {};
 
@@ -88,10 +105,13 @@ const DEFAULT_SKIN: CursorSkin =
   CURSOR_CONFIG.skin === "cartoon" ? "cartoon" : "pixel";
 const DEFAULT_SPRITE_URL = CURSOR_CONFIG.spriteUrl || "";
 const DEFAULT_SPRITE_WIDTH = CURSOR_CONFIG.spriteWidth || PIXEL_WIDTH;
+const DEFAULT_RANDOM_SKIN = CURSOR_CONFIG.randomSkin !== false;
 const DEFAULT_TILT =
   typeof CURSOR_CONFIG.tilt === "number" ? CURSOR_CONFIG.tilt : OVER_TILT;
 /** 配置里 cursor.enabled === false 时整个光标不启用（回落到系统光标） */
 const CURSOR_ENABLED = CURSOR_CONFIG.enabled !== false;
+/** 配置里固定了角色（id 或序号）就优先用它，且不再随机 */
+const CONFIG_CHARACTER = findCharacter(CURSOR_CONFIG.character);
 
 /** 两层共用的定位样式 */
 const CURSOR_BASE_STYLE: React.CSSProperties = {
@@ -113,6 +133,10 @@ type CustomCursorProps = {
   spriteUrl?: string;
   /** 精灵宽度（px），高度按图案比例自动算 */
   spriteWidth?: number;
+  /** 固定某一位内置角色（id 或序号），传了就不随机 */
+  characterId?: string | number;
+  /** 是否随机抽角色；不传则用配置里的 cursor.randomSkin（默认 true） */
+  randomSkin?: boolean;
   /** 悬停到可点击元素时的旋转角度（deg），0 = 不旋转 */
   tilt?: number;
 };
@@ -121,24 +145,43 @@ function CustomCursor({
   skin = DEFAULT_SKIN,
   spriteUrl = DEFAULT_SPRITE_URL,
   spriteWidth,
+  characterId,
+  randomSkin,
   tilt = DEFAULT_TILT,
 }: CustomCursorProps) {
   const [supported, setSupported] = useState(false); // 当前设备是否启用自定义光标
   const [visible, setVisible] = useState(false); // 鼠标是否停在窗口内
   const [pointerOver, setPointerOver] = useState(false); // 是否悬停在可点击元素上
   const [pressed, setPressed] = useState(false); // 是否按下鼠标
-  const [nativeZone, setNativeZone] = useState(false); // 是否悬停在「交还系统光标」的控件上
+  const [textZone, setTextZone] = useState(false); // 是否在输入框 / 可编辑区域内
   const [label, setLabel] = useState(""); // 目标元素上的 data-cursor-text
 
   /* ---- motion value：位置与形变都走它，鼠标移动不进入 React 渲染 ---- */
   const pointerX = useMotionValue(-100);
   const pointerY = useMotionValue(-100);
 
-  // 小人：两轴各一条弹簧 → 延迟跟随（箭头的跟手精度由原始坐标保证）
-  const figureX = useSpring(pointerX, { stiffness: 280, damping: 26, mass: 0.6 });
-  const figureY = useSpring(pointerY, { stiffness: 280, damping: 26, mass: 0.6 });
+  /* 随机皮肤：只在挂载时抽一次（useState 的惰性初值），
+     因此「每次刷新换一位」但在同一次访问里稳定 —— 不会因为重渲染换脸。 */
+  const [randomCharacter] = useState(() =>
+    pickRandomCharacter() || PIXEL_CHARACTERS[0]
+  );
 
-  // 缩放 / 旋转 / 透明度同样交给弹簧，hover、按下、离开时都是平滑过渡
+  /* 角色优先级：props.characterId > 配置 cursor.character > 随机 > 默认第一位 */
+  const character = useMemo(() => {
+    const fixed = findCharacter(characterId);
+    if (fixed) return fixed;
+    if (CONFIG_CHARACTER) return CONFIG_CHARACTER;
+    const wantRandom = randomSkin === undefined ? DEFAULT_RANDOM_SKIN : randomSkin;
+    return wantRandom ? randomCharacter : PIXEL_CHARACTERS[0];
+  }, [characterId, randomSkin, randomCharacter]);
+
+  /* 小人位置：直接用原始坐标（零弹簧）。
+     从前这里各挂一条弹簧，鼠标停下后小人还在追，主观感受就是「不跟手」；
+     现在位置和箭头同帧更新，只有「形变」保留惯性。 */
+  const figureX = pointerX;
+  const figureY = pointerY;
+
+  // 缩放 / 旋转 / 透明度走弹簧：hover、按下、进出窗口时都是平滑过渡
   const figureScale = useSpring(0.6, { stiffness: 320, damping: 22, mass: 0.5 });
   const figureRotate = useSpring(0, { stiffness: 260, damping: 24, mass: 0.5 });
   const cursorOpacity = useSpring(0, { stiffness: 300, damping: 30, mass: 0.4 });
@@ -179,14 +222,14 @@ function CustomCursor({
     if (!supported) return undefined;
 
     const syncHover = (element: Element | null) => {
-      // 输入类控件优先级最高：交还系统光标，并让两层淡出
-      if (element && element.closest(NATIVE_CURSOR_SELECTOR)) {
-        setNativeZone(true);
+      // 文本区优先级最高：箭头换成像素竖线、收起气泡、不再算「可点击悬停」
+      if (element && element.closest(TEXT_ZONE_SELECTOR)) {
+        setTextZone(true);
         setPointerOver(false);
         setLabel("");
         return;
       }
-      setNativeZone(false);
+      setTextZone(false);
       // closest 从事件目标往上找：鼠标落在 <a> 里的图标上也照样算悬停
       const interactive = element ? element.closest(INTERACTIVE_SELECTOR) : null;
       setPointerOver(Boolean(interactive));
@@ -204,7 +247,7 @@ function CustomCursor({
       visibleRef.current = false;
       setVisible(false);
       setPointerOver(false);
-      setNativeZone(false);
+      setTextZone(false);
       setLabel("");
       setPressed(false);
     };
@@ -265,10 +308,10 @@ function CustomCursor({
     figureRotate.set(pointerOver ? tilt : 0);
   }, [pointerOver, pressed, figureScale, figureRotate, tilt]);
 
-  /* 5) 鼠标移出窗口 / 悬停在输入类控件上 → 整体淡出（交还系统光标） */
+  /* 5) 鼠标移出窗口 → 整体淡出（文本区不再淡出：箭头换成竖线，照常可见） */
   useEffect(() => {
-    cursorOpacity.set(visible && !nativeZone ? 1 : 0);
-  }, [visible, nativeZone, cursorOpacity]);
+    cursorOpacity.set(visible ? 1 : 0);
+  }, [visible, cursorOpacity]);
 
   // 不支持的设备什么都不渲染，也就不会挂上任何全局样式
   if (!supported) return null;
@@ -282,19 +325,25 @@ function CustomCursor({
     ? Math.round((figureWidth * PIXEL_HEIGHT) / PIXEL_WIDTH)
     : FIGURE_HEIGHT;
 
-  const figureClassName =
-    "cur-figure-wrap cur-figure-wrap--" +
-    skin +
+  /* 状态类挂在两层上：
+     · 小人层要 cur--over / cur--press 驱动表情与反相；
+     · 箭头层要 cur--over / cur--press / cur--text 驱动箭头反相、像素位移与竖线切换。 */
+  const stateClasses =
     (pointerOver ? " cur--over" : "") +
     (pressed ? " cur--press" : "") +
-    (nativeZone ? " cur--native" : "");
+    (textZone ? " cur--text" : "");
+
+  const figureClassName =
+    "cur-figure-wrap cur-figure-wrap--" + skin + stateClasses;
+  const arrowClassName = "cur-arrow" + stateClasses;
 
   return createPortal(
     <>
-      {/* ① 主角：弹簧驱动的延迟跟随（被「拖着走」的感觉）+ data-cursor-text 气泡 */}
+      {/* ① 像素小人：位置零弹簧（与箭头同帧），形变走弹簧；data-cursor-text 气泡也在这层 */}
       <motion.div
         aria-hidden="true"
         className={figureClassName}
+        data-cursor-character={isPixel ? character.id : undefined}
         style={{
           ...CURSOR_BASE_STYLE,
           width: figureWidth,
@@ -316,7 +365,7 @@ function CustomCursor({
             {spriteUrl ? (
               <SpriteImage url={spriteUrl} width={pixelSpriteWidth} />
             ) : (
-              <PixelCharacter width={pixelSpriteWidth} />
+              <PixelCharacter width={pixelSpriteWidth} character={character} />
             )}
             {label ? <span className="cur-label">{label}</span> : null}
           </div>
@@ -328,39 +377,22 @@ function CustomCursor({
         )}
       </motion.div>
 
-      {/* ② 小箭头：不吃弹簧，尖端严格咬住鼠标坐标（保证「指哪点哪」的精度） */}
+      {/* ② 像素箭头 + 像素竖线：尖端严格咬住鼠标坐标（保证「指哪点哪」的精度） */}
       <motion.div
         aria-hidden="true"
-        className="cur-arrow"
+        className={arrowClassName}
         style={{
           ...CURSOR_BASE_STYLE,
-          width: POINTER_WIDTH,
-          height: POINTER_HEIGHT,
+          width: ARROW_WIDTH,
+          height: ARROW_HEIGHT,
           x: pointerX,
           y: pointerY,
           opacity: cursorOpacity,
         }}
       >
-        <svg
-          viewBox="0 0 12 19"
-          width={POINTER_WIDTH}
-          height={POINTER_HEIGHT}
-          aria-hidden="true"
-          focusable="false"
-        >
-          {/* 填充取强调色、描边取背景色 → 深色主题是「白箭头 + 深描边」，
-              浅色主题自动变成「黑箭头 + 浅描边」，任何背景上都看得见 */}
-          <path
-            d="M0.9 0.9 L0.9 15.4 L4.6 12.1 L7.2 17.8 L9.5 16.8 L6.9 11.1 L11.1 11.1 Z"
-            style={{
-              fill: "var(--accent)",
-              stroke: "var(--bg-primary)",
-              strokeWidth: 1.6,
-              strokeLinejoin: "round",
-              paintOrder: "stroke",
-            }}
-          />
-        </svg>
+        <PixelArrow width={ARROW_WIDTH} />
+        {/* 文本区专用：原生文本光标已全局禁用，这里补一根会闪的像素竖线 */}
+        <span className="cur-caret" />
       </motion.div>
     </>,
     document.body
