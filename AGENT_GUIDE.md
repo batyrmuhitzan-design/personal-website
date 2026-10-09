@@ -327,6 +327,13 @@ ssh kaznu "cd /opt/personal-website && git fetch --prune origin && git reset --h
 - 验收标准：`docker images` 里 `latest` 的 ID 变了 + 容器 `(healthy)` +
   首页 HTML 引用的 `main.<hash>.js/css` 与 `prebuilt/static/**` 里的文件名一致。
 
+> **2026-10-10 实测坑**：在 PowerShell 里调 Git Bash（`& 'E:\pycham11\Git\bin\bash.exe'
+> 'E:/个人网/scripts/deploy-prebuilt.sh'`）会在 `scp` 一步挂在 `scp: Connection closed`
+> —— Git for Windows 自带的 ssh/scp 跟这台服务器握不上。**改用上面那段纯 PowerShell 流程**
+> （`scp` / `ssh` 走 Windows 自带的 OpenSSH，即 `C:\Windows\System32\OpenSSH\`），
+> 其余步骤完全等价；命令很长时先把远端要跑的一串写进 `/tmp/deploy-remote.sh`
+> （用 `scp` 传上去），再 `ssh kaznu "bash /tmp/deploy-remote.sh"`，比把整条长命令塞进引号里稳得多。
+
 
 ---
 
@@ -396,7 +403,10 @@ Windows 控制台若是 GBK，中文可能显示成乱码，先 `chcp 65001` 即
 | `src/theme/ThemeContext.tsx` | 主题上下文：持久化 / 跟随系统 / 过渡窗口 | ✅ |
 | `src/components/Header.tsx` · `ThemeToggle.tsx` | 极简顶部导航 + 日夜切换（取代旧 `Navbar.js`） | ✅ |
 | `src/lib/pixelArt.ts` · `src/components/CursorSprite.tsx` · `cursorStyles.ts` | 像素画工具 + 10 位角色 / 像素箭头 + 运行时注入的光标样式（详见 §15） | ✅ |
-| `src/components/SplitText.tsx` | 逐字 / 逐词入场 + 黑白高亮扫过（Hero 标题 / 签名，详见 §15.4） | ✅ |
+| `src/components/SplitText.tsx` | 逐字 / 逐词入场 + 黑白高亮扫过（Hero 标题 / 签名，详见 §15） | ✅ |
+| `src/lib/navigation.ts` · `navigation.test.js` | 同页导航唯一来源：区块顺序、平滑滚动（Lenis → scrollTo → 原生锚点）、scroll-spy、哈希归一化 | ✅ |
+| `src/lib/stage3d.ts` · `src/components/Stage3D.js` · `src/lib/cinema.ts` · `src/components/CinemaScroll.tsx` | 首页 3D 舞台（three.js，懒加载）与滚动电影感编排（详见 §15 文件分工表） | ✅ |
+| `src/lib/sound.ts` · `src/components/SoundBridge.tsx` · `SoundToggle.tsx` | 交互音效（WebAudio 合成，无音频文件）与导航栏上的静音开关 | ✅ |
 | `src/components/MusicBrandIcon.tsx` | 音乐频道品牌图标 + `brandKeyOf` 判定（详见 §16.4） | ✅ |
 | `scripts/slim-server.sh` | 小内存服务器瘦身（默认只体检，`--apply` 才动手） | ✅ |
 | `Dockerfile.prebuilt` | 预构建产物镜像：nginx + 静态文件，服务器不编译（小内存专用，见 9.3） | ✅ |
@@ -426,7 +436,7 @@ Windows 控制台若是 GBK，中文可能显示成乱码，先 `chcp 65001` 即
 2. 组件里只用 `var(--your-token)`；Tailwind 里想用就再往 `tailwind.config.js` 的 `colors` 加一行映射；
 3. 不要在任何组件里写死色值 —— 写死了就不会跟着换肤。
 
-### 14.3 三个坑（改之前先看）
+### 14.3 四个坑（改之前先看）
 
 1. **过渡窗口**：换肤的「丝滑」靠 `<html class="theme-switching">`，它只在切换后的 600ms 内存在，并用 `!important` 覆盖全树的 `transition`。**不要在窗口期内依赖 CSS transition 做关键动画**（framer-motion 的逐帧内联动画不受影响，这也是切换按钮用 framer-motion 而不是 CSS 过渡的原因）。
 2. **老样式表**：`src/style.css` 是上游模板遗留 + 二改定制的混合体（1835 行），已经全量令牌化（207 处），但里面仍保留 `!important` 与 `rgba(0,0,0,x)` 阴影之类「与主题无关」的写法。**改它时优先复用令牌**，不要再引入紫色系（上游强调色 `#c770f0` 已统一映射到 `var(--accent)`；并在「全面黑白化」中把 `src/Assets/**/*.svg`、`public/favicon.svg`、`public/og-cover.svg`、MusicPlayer 的 APlayer 主题色与 `manifest.json` 的 `theme_color` 也全部改成灰阶）。
@@ -436,7 +446,7 @@ Windows 控制台若是 GBK，中文可能显示成乱码，先 `chcp 65001` 即
 ### 14.4 验证
 
 ```bash
-npm test -- --watchAll=false   # 13 套件 / 82 用例（含主题持久化、过渡窗口、动效体系、光标皮肤、播放器控制条）
+$env:CI='true'; npx react-scripts test --watchAll=false   # 22 套件 / 191 用例（含主题持久化、动效体系、同页导航、光标皮肤、播放器控制条）
 npm run build                  # 生产构建（CI=true 时 lint 警告会被当错误）
 # 构建产物自检：令牌与工具类是否真的进包
 grep -c -- '--bg-primary' build/static/css/*.css
@@ -444,21 +454,28 @@ grep -c -- '--bg-primary' build/static/css/*.css
 
 ---
 
-## 15. 前端动效体系（光标 / 平滑滚动 / 入场 / 视差 / 无缝切页）
+## 15. 前端动效体系（光标 / 平滑滚动 / 入场 / 视差 / 同页导航）
 
-一句话：**所有「装饰性动效」只认一个开关 `--motion-play-state`**（定义在 `src/index.css` 的 `:root`，默认 `running`）。
+一句话：**滚动入场 / 视差 / 光标 / 平滑滚动一律常开**；只剩一个开关 `--motion-play-state`
+（`src/index.css` 的 `:root`，默认 `running`），而它**只管两件事**：切页淡入淡出 + 组件里的空转 CSS 动画。
+
+> **2026-10-10 修正（重要）**：组件**不要再读**这个开关。此前 `Reveal` / `Parallax` / `SplitText` /
+> `SkillSection` / `Header` 各自读一遍 `--motion-play-state`，只要读数不是 `running`，
+> 这些元素就永远停在 `opacity: 0` —— 现场表现是「页面白屏 / 内容冻住 / 点了没反应」。
+> 现在读它的只剩 `PageTransition`（见 15.2），读法统一在 `src/lib/useMotionPlayState.ts`。
 
 ### 15.1 文件分工
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/index.css` | 定义总开关 `--motion-play-state`（含说明与「跟随系统」的注释段）；`.reveal` / `.parallax-layer` / `.page-transition` / `.route-curtain` 的静态样式 |
-| `src/lib/useMotionPlayState.ts` | 读总开关：`useMotionPlayState()`（`"running"` / `"paused"`）与 `useMotionPlaying()`（布尔）；拿不到时按 `running` |
+| `src/index.css` | 定义总开关 `--motion-play-state`（含「跟随系统」的注释段；**只治理切页与空转 CSS 动画**）；`.reveal` / `.parallax-layer` / `.page-transition` 的静态样式（原 `.route-curtain` 已删除） |
+| `src/lib/useMotionPlayState.ts` | 读总开关：`useMotionPlayState()`（`"running"` / `"paused"`）与 `useMotionPlaying()`（布尔）；拿不到时按 `running`。**现在只有 `PageTransition` 用它**，新组件默认不要用 |
 | `src/components/SmoothScroll.tsx` | Lenis 平滑滚动，参数读 `portfolio.config.motion.lenis`；导出 `getLenis()` / `scrollToTop()` |
-| `src/components/Reveal.tsx` | 滚动入场：`<Reveal direction delay distance as>`，`whileInView` 只播一次 |
-| `src/components/SplitText.tsx` | 逐字 / 逐词入场 + 黑白高亮扫过：`<SplitText text by delay stagger highlight>`（Hero 标题 / 签名在用） |
+| `src/lib/navigation.ts` | 同页导航的唯一入口：`SECTION_IDS` / `scrollToSection(id)` / `findSection(id)` / `currentSectionId(scrollY)` / `normalizeHash(hash)`（**先 `trim()` 再剥 `#`**）；不用路由跳转（见 15.5） |
+| `src/components/Reveal.tsx` | 滚动入场：`<Reveal direction delay distance as start>`，进视口播一次（IntersectionObserver）；`start={false}` = 先按住不播 |
+| `src/components/SplitText.tsx` | 逐字 / 逐词入场 + 黑白高亮扫过：`<SplitText text by delay stagger highlight start>`（Hero 标题 / 签名在用） |
 | `src/components/Parallax.tsx` | 视差层：`<Parallax speed>`，`useScroll + useSpring + useTransform`（只改 transform） |
-| `src/components/PageTransition.tsx` | `PageTransition`（页面转场外壳，配合 `AnimatePresence exitBeforeEnter`）+ `RouteCurtain`（整屏遮罩扫过） |
+| `src/components/PageTransition.tsx` | `PageTransition`（页面转场外壳，配合 `AnimatePresence exitBeforeEnter`）。**没有 `RouteCurtain` 了**：导航是同页平滑滚动，不该再出现全屏遮罩扫过 |
 | `src/components/CustomCursor.tsx` | 自定义光标主体：像素箭头 + 像素小人（**位置零弹簧、1:1 跟手**），配置读 `portfolio.config.cursor` |
 | `src/components/CursorSprite.tsx` · `CursorCartoon.tsx` | 三种来源：`PixelArrow`（像素箭头）/ `PixelCharacter`（10 位内置角色之一）/ `SpriteImage`（站长自己的 PNG / GIF / SVG）；`CursorCartoon` = 手绘小人皮肤 |
 | `src/lib/pixelArt.ts` | 像素矩阵 → SVG 矩形（run-length 合并）；`PIXEL_CHARACTERS`（10 位角色）+ `PIXEL_ARROW`（11×15，尖端在 (0,0)）+ `findCharacter` / `pickRandomCharacter`；颜色只走 CSS 变量，主题自动反相 |
@@ -468,7 +485,7 @@ grep -c -- '--bg-primary' build/static/css/*.css
 
 | 取值 | 含义 |
 | --- | --- |
-| `running` | **当前选择**：唱片自转 / 光标呼吸 / Lenis 接管 / 入场与视差 / 切页遮罩全部播放 |
+| `running` | **当前选择**：切页淡入淡出 + 唱片自转 / 光标呼吸这类空转 CSS 动画都照播；入场与视差本来就与它无关 |
 | `paused` | 跟随系统「减弱动态效果」：把 `src/index.css` 里那段 `@media (prefers-reduced-motion: reduce)` 的注释打开即可（**改一处，无需动任何组件**） |
 
 **为什么不直接跟系统**：本机 Windows 的「动画效果」是关闭的（`SPI_GETCLIENTAREAANIMATION = False`、`MinAnimate = 0`），Chrome 会一直上报 `prefers-reduced-motion: reduce`，跟随系统 = 全站动效永久静止。所以裁决权收在站点自己手里。
@@ -476,10 +493,12 @@ grep -c -- '--bg-primary' build/static/css/*.css
 三条边界（与 `index.css` 注释一致）：
 
 1. 只影响**装饰性**动效，不影响播放逻辑与信息表达（音乐照播、歌单照能滚）；
-2. 置为 `paused` 时：`Reveal` 退化成普通 `div`（`data-reveal="paused"`）、`Parallax` 不挂 `y`、`RouteCurtain` 完全不出现 —— **关动效 ≠ 丢内容**；
+2. 置为 `paused` 时：`PageTransition` 退化成普通 `div`（`data-page-transition="paused"`）、黑胶不转、光标呼吸停 —— **关动效 ≠ 丢内容**；
+   `Reveal` / `Parallax` / `SplitText` 已经**不认**这个开关，它们永远走到终止态（这也是 2026-10-10 那场「白屏」的修复）；
 3. 换肤过渡（`html.theme-switching`）仍尊重系统设置，见 `index.css` 里那段 `@media`。
 
 组件侧的正确读法：React 里用 `useMotionPlaying()`；CSS 里用 `animation-play-state: var(--motion-play-state)`。**不要各写一份 `matchMedia`**（现在全站已经收敛成一处）。
+**也别给新写的入场组件再套这层判断**：入场只该有「进视口 → 播完 → 停在终止态」一条路径，多一条分支就多一个把内容按在 `opacity: 0` 里的机会。
 
 ### 15.3 换光标皮肤 / 用自己的图
 
@@ -508,6 +527,7 @@ grep -c -- '--bg-primary' build/static/css/*.css
 
 ```jsx
 <Reveal direction="up" delay={0.12} as="li">…</Reveal>        // 列表项：as 换标签，别多套一层
+<Reveal direction="up" start={ready}>…</Reveal>               // 首屏：等加载遮罩退场再播（见 15.5）
 <Parallax speed={28} className="parallax-fill">…</Parallax>   // 视差层：speed 正 = 向上漂（看起来更慢）
 <SplitText as="h1" text="Hi There!" by="word" stagger={0.07} />          // 逐词入场 + 高亮扫过
 <SplitText text="I'M 莎莎 SHASHA" highlight="莎莎 SHASHA" charClassName="main-name" />  // 命中片段挂高亮类
@@ -516,16 +536,46 @@ grep -c -- '--bg-primary' build/static/css/*.css
 - 风格统一是「淡入 + 24px 上移 + 0.7s expo-out」；列表按 `index * 0.08` 依次浮现。**别再往里塞弹跳 / 旋转**，那是廉价感的来源；
 - `SplitText` 只接**纯文本字符串**（拆完再拼回去必须和原文一模一样）；长句用 `by="word"`（省一半节点），短标题用 `by="char"`；
 - `SplitText` 的高亮扫过是「白色光带 + `mix-blend-mode: difference`」：经过之处黑白互换，所以深浅主题都不用另配颜色。`.split-text` 上的 `isolation: isolate` 不能删（否则会把整块背景一起反相）；
-- `Reveal` 内部是 `whileInView`（IntersectionObserver）只播一次，元素一进视口就到位；
+- `Reveal` 内部是自己写的 `useRevealInView`（IntersectionObserver 只播一次；**量不到布局就直接显示**），元素一进视口就到位；
 - `Parallax` 的 `className` 常常是必要的（例如 `parallax-fill`）：`img { width: 100% }` 需要一个百分比参照，多出来的一层 div 不加 `position: relative` 会把图弄塌；
 - `SkillSection` 自带滚动驱动动画（`data-motion`），**不要**再套 `Reveal` / `Parallax`（两套动画会互相盖，见 `Home.js` 里的注释）；
 - 新加页面时必须包在 `<PageTransition>` 里，并挂在 `App.js` 的 `<Routes location={location} key={location.pathname}>` 下：`key` 换掉子树、`AnimatePresence exitBeforeEnter` 留住旧页播完 exit（升到 framer-motion v7 需把 `exitBeforeEnter` 改成 `mode="wait"`）；
-- 真正**无缝**的关键是 `RouteCurtain`：新页在「遮罩盖住」的那一小段里完成挂载，观感是「旧页退场 → 遮罩扫过 → 新页已就位」，全程无白闪。遮罩 `pointer-events: none`（绝不吃点击）且用 `createPortal` 挂到 `body`（不受祖先 `transform` 影响）。
+- 真正**无缝**的关键是「首屏入场等遮罩退场」：`App.js` 把 `ready={!load}` 传给各页，首屏元素写 `start={ready}`（见 15.5）。旧版那个全屏遮罩 `RouteCurtain` 已删除 —— 导航改同页滚动后它没有存在意义，还会在点击时误吞一次交互。
 
-### 15.5 验证
+### 15.5 导航（同页平滑滚动）与首屏入场（`ready` 握手）
+
+**导航**：`Header` 的每一项本体都是 `<a href="#work">`，点击时先交给 `scrollToSection()`：
+
+- 当前位置就有这一块 → **只平滑滚过去，不换路由**。不换路由是关键：换路由会卸载整棵子树，
+  滚动位置、入场动画、Canvas 状态全部重来，观感就是「闪一下回到顶部」；
+- 当前页没有这一块（例如站在 `/about` 点「作品」）→ 才交给路由去首页，由 `ScrollToTop` 落到 `#work`
+  （它进入时会轮询等区块挂载，约 0.9s，避免「锚点比内容先到」）；
+- 滚动通道三层降级：Lenis → `window.scrollTo({behavior:"smooth"})` → 交还原生锚点；
+- 高亮（scroll-spy）用 `currentSectionId()`：取「顶边已越过判定线」的最后一块；
+  独立路由页（`/project` 等）没有区块 id，用 `SECTION_BY_PATH` 反推，免得一个都点不亮。
+
+**首屏入场**：加载遮罩要 2s 停顿 + 0.8s 上滑才离开，而路由内容在 t=0 就挂载了。
+不等它就播 = 整套入场在纯黑幕布后面放完，用户只看到「页面本来就这么静」。所以：
+
+```jsx
+// App.js：load = 遮罩还在场
+<AppRoutes ready={!load} />
+// 各页首屏元素（Home / About / Projects / ResumeNew / Contact 各自的第一组）
+<SplitText start={ready} … />
+<Reveal start={ready} … />
+```
+
+- 只给**首屏**元素传 `start={ready}`；首屏以下一律不传（`Reveal` 默认 `start=true`，进视口就播）；
+- 首页内嵌的 `<Projects embedded />` / `<ResumeNew embedded />` 也不传（它们在首屏以下，交给滚动）；
+- `start={false}` **不是**「渲染成 `opacity: 0` 的残留」：它只是「还不开始观察」，`ready` 一翻真
+  就交给 IntersectionObserver —— 这是与 15.2 那条「别把内容按在 `opacity: 0`」的分界线，改动时务必守住。
+
+### 15.6 验证
 
 ```bash
-npm test -- --watchAll=false    # 15 套件 / 114 用例（含 Reveal / SplitText / Parallax / PageTransition / pixelArt / 光标皮肤 / 播放器 / 品牌图标）
+# ⚠️ 必须走 react-scripts（bare `npx jest` 不过 babel，.jsx/.tsx 直接报语法错）；
+#    PowerShell 下先 $env:CI='true'，否则 watch 模式会挂住终端
+$env:CI='true'; npx react-scripts test --watchAll=false   # 22 套件 / 191 用例（含 navigation / Reveal / SplitText / Parallax / SkillSection / PageTransition / pixelArt / 光标皮肤 / 播放器 / 品牌图标）
 npx tsc --noEmit                # 动效组件是 TS，类型必须干净（0 输出 = 通过）
 npm run build                   # 生产构建（CI=true 时 lint 警告会被当错误）
 ```
@@ -533,19 +583,22 @@ npm run build                   # 生产构建（CI=true 时 lint 警告会被�
 浏览器手查清单（改完动效必走一遍）：
 
 1. **光标**：鼠标动一格箭头与小人就动一格（位置零弹簧，都咬住坐标）；悬停按钮 → 放大 + 轻微旋转 + 箭头反相 + 气泡；按下 → 缩一下并像素位移一格；移进输入框 → 箭头换成会闪的像素竖线；F12 里 `document.documentElement` 应带 `has-custom-cursor`，刷新几次应能看到不同角色。
-2. **平滑滚动**：滚轮一格一格跳 = Lenis 没接管（先查 `--motion-play-state` 是否 `running`、浏览器是否有 `ResizeObserver`）；滚到页面顶部 / 底部不应再有「顿一下」（靠 `overscroll-behavior-y: none`）；播放器歌单内滚动应仍是原生（靠 `data-lenis-prevent`）。
-3. **切页**：旧页淡出 → 遮罩自下而上扫过 → 新页就位，全程无白闪；首屏不扫（首屏入场交给 `LoadingScreen`）；点当前路由不扫（`seen.current === pathname` 直接 return）。
-4. **静音回归**：把 `--motion-play-state` 临时改成 `paused` 再走 1~3 步 —— 光标仍在、内容完整、只是不动；遮罩与视差位移都不出现；Hero 标题不再拆字（`data-split="paused"`）。
+2. **导航**：点「作品 / 关于 / 经历 / 联系」应平滑滚到对应区块（**不换路由、不闪回顶部**），1px 下划线跟着滑过去；站在 `/about` 点「作品」才回首页并落到 `#work`；地址栏哈希要同步成 `#work`。
+3. **平滑滚动**：滚轮一格一格跳 = Lenis 没接管（查浏览器有没有 `ResizeObserver`、`--motion-play-state` 是否被误改成 `paused`）；滚到页面顶部 / 底部不应再有「顿一下」（靠 `overscroll-behavior-y: none`）；播放器歌单内滚动应仍是原生（靠 `data-lenis-prevent`）。
+4. **首屏入场**：遮罩上滑离开的**同一刻**，Hero 的标题 / 名字 / 终端卡 / 签名才开始依次进场（不是「早就演完了」）；往下滚，「关于 / 作品」的卡片逐个浮现，每张只播一次。
+5. **切页**：只有淡入淡出，**不再**有全屏遮罩扫过（`RouteCurtain` 已删除）。
+6. **静音回归**：把 `--motion-play-state` 临时改成 `paused` —— 内容必须完整、只是一些空转动画停住；**任何区块都不该变成不可见**（这条是 2026-10-10 白屏事故的验收线）。
+7. **点得动**：鼠标停在任意链接 / 按钮上都能点（光标整层是 `pointer-events: none`）；页脚社交图标、导航项、「下载简历」逐个点一遍。
 
-### 15.6 坑（改之前先看）
+### 15.7 坑（改之前先看）
 
 1. **别把动效开关写进 `portfolio.config.js`**：配置里只有 `motion.lenis` 参数（`portfolio.config.test.js` 会断言这一点），开关统一走 CSS 变量 —— 否则「关动效」要改两处。
-2. **`paused` 绝不能藏内容**：新写动画沿用「暂停时用终止状态渲染（`initial={false}`）」的做法，永远不要让内容停在 `opacity: 0` 或位移里。`Reveal` / `SplitText` / `Parallax` / `PageTransition` 都已经遵守。
+2. **任何开关都不许藏内容**：新写动画永远不要让内容停在 `opacity: 0` 或位移里。`Reveal` / `SplitText` / `Parallax` / `SkillSection` / `Header` 已经**完全不读**动效开关（见 15.2 的 2026-10-10 修正）；`PageTransition` 的 `paused` 分支也只是换成普通 `div`，绝不是隐藏。
 3. **Lenis 改的是真实滚动位置**（`window.scrollY`），所以 `useScroll` / `useTransform` 量到的进度始终准确。哪天换成「给内容容器套 transform」的平滑滚动方案，`Parallax` 与 `SkillSection` 的滚动测量会立刻失准。
-4. **jsdom 里的 `IntersectionObserver` 是 `setupTests.js` 的空实现**（只注册回调、不触发），所以 `whileInView` 在测试里永远停在初始态：**别断言「元素最终可见」**，要断言结构 / 标记（`data-reveal` / `data-split` / `data-parallax` / `data-route-curtain`）以及 `paused` 分支。
-5. **光标与遮罩都用 `createPortal` 挂 `document.body`**：祖先的 `transform` / `filter` / `backdrop-filter` 会让 `position: fixed` 失效或把绘制限制在局部层里；改这两处时别顺手挪回组件树里。
+4. **jsdom 里的 `IntersectionObserver` 是 `setupTests.js` 的空实现**（只注册回调、不触发），「进视口」这件事在测试里不会发生。所以 `Reveal` 自己写了一套 `useRevealInView`：**量不出布局（jsdom / 刚挂载还没渲染的空盒）就直接算「已进入」**，宁可不动效也绝不把内容藏进 `opacity: 0`。测试就断言这条契约（`start={false}` → `data-reveal="waiting"`，其余 → `data-reveal="visible"`），别去断言动画中间态。
+5. **光标用 `createPortal` 挂 `document.body`**：祖先的 `transform` / `filter` / `backdrop-filter` 会让 `position: fixed` 失效、或把绘制限制在局部层里；改光标时别顺手挪回组件树里。
 6. **`will-change` 只加在 `.reveal` / `.split-text__unit` 这类小元素本身**：别写 `*` 或给父级批量提升，元素一多滚动反而更卡。
-7. **`RouteCurtain` 的 `key={sweep}` 不能删**：这是「连续切页时遮罩能重播」的唯一依据（同一个 motion 元素不会重播已有动画）。
+7. **光标绝不许吃点击**：`CustomCursor` 挂在 `body` 下、`z-index` 很高，一旦某一层恢复 `pointer-events: auto`，鼠标底下的链接就点不动了。`.cur-figure-wrap` / `.cur-arrow` 在 `src/components/cursorStyles.ts` 里是带 `!important` 的 `pointer-events: none`（内联样式的优先级低于它）—— 新加光标层时也要带上，`CustomCursor · 不许吃点击` 那套测试守的就是这条。
 8. **光标位置是「零弹簧」的，别再加回去**：`figureX/figureY` 直接吃 `pointerX/pointerY`（只有 scale / rotate / opacity 走弹簧）。加回弹簧 = 鼠标停下后小人还在追，主观感受就是「不跟手」。
 9. **`.split-text` 的 `isolation: isolate` 不能删**：高亮扫过靠 `mix-blend-mode: difference`，没有独立混合上下文就会把整块背景一起反相。
 
