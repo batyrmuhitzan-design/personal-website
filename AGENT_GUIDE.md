@@ -395,6 +395,9 @@ Windows 控制台若是 GBK，中文可能显示成乱码，先 `chcp 65001` 即
 | `src/theme/tokens.css` | 设计令牌：全站唯一色彩来源（HTML 黑白双主题） | ✅ |
 | `src/theme/ThemeContext.tsx` | 主题上下文：持久化 / 跟随系统 / 过渡窗口 | ✅ |
 | `src/components/Header.tsx` · `ThemeToggle.tsx` | 极简顶部导航 + 日夜切换（取代旧 `Navbar.js`） | ✅ |
+| `src/lib/pixelArt.ts` · `src/components/CursorSprite.tsx` · `cursorStyles.ts` | 像素画工具 + 10 位角色 / 像素箭头 + 运行时注入的光标样式（详见 §15） | ✅ |
+| `src/components/SplitText.tsx` | 逐字 / 逐词入场 + 黑白高亮扫过（Hero 标题 / 签名，详见 §15.4） | ✅ |
+| `src/components/MusicBrandIcon.tsx` | 音乐频道品牌图标 + `brandKeyOf` 判定（详见 §16.4） | ✅ |
 | `scripts/slim-server.sh` | 小内存服务器瘦身（默认只体检，`--apply` 才动手） | ✅ |
 | `Dockerfile.prebuilt` | 预构建产物镜像：nginx + 静态文件，服务器不编译（小内存专用，见 9.3） | ✅ |
 | `scripts/deploy-prebuilt.sh` | 本机编译 → 服务器只打 nginx 镜像（含产物自检、健康检查、`:previous` 回滚） | ✅ |
@@ -453,12 +456,13 @@ grep -c -- '--bg-primary' build/static/css/*.css
 | `src/lib/useMotionPlayState.ts` | 读总开关：`useMotionPlayState()`（`"running"` / `"paused"`）与 `useMotionPlaying()`（布尔）；拿不到时按 `running` |
 | `src/components/SmoothScroll.tsx` | Lenis 平滑滚动，参数读 `portfolio.config.motion.lenis`；导出 `getLenis()` / `scrollToTop()` |
 | `src/components/Reveal.tsx` | 滚动入场：`<Reveal direction delay distance as>`，`whileInView` 只播一次 |
+| `src/components/SplitText.tsx` | 逐字 / 逐词入场 + 黑白高亮扫过：`<SplitText text by delay stagger highlight>`（Hero 标题 / 签名在用） |
 | `src/components/Parallax.tsx` | 视差层：`<Parallax speed>`，`useScroll + useSpring + useTransform`（只改 transform） |
 | `src/components/PageTransition.tsx` | `PageTransition`（页面转场外壳，配合 `AnimatePresence exitBeforeEnter`）+ `RouteCurtain`（整屏遮罩扫过） |
-| `src/components/CustomCursor.tsx` | 自定义光标主体：坐标 / 悬停 / 按下（motion value + 弹簧），配置读 `portfolio.config.cursor` |
-| `src/components/CursorSprite.tsx` · `CursorCartoon.tsx` | 两种皮肤：内置像素小人（内联 SVG）/ 手绘卡通小人；`SpriteImage` = 站长自己的 PNG / GIF / SVG |
-| `src/lib/pixelArt.ts` | 像素矩阵 → SVG 矩形（run-length 合并）；颜色只走 CSS 变量，主题自动反相 |
-| `src/components/cursorStyles.ts` | 运行时注入的 CSS（隐藏系统光标 + 皮肤动画），卸载时完整移除 |
+| `src/components/CustomCursor.tsx` | 自定义光标主体：像素箭头 + 像素小人（**位置零弹簧、1:1 跟手**），配置读 `portfolio.config.cursor` |
+| `src/components/CursorSprite.tsx` · `CursorCartoon.tsx` | 三种来源：`PixelArrow`（像素箭头）/ `PixelCharacter`（10 位内置角色之一）/ `SpriteImage`（站长自己的 PNG / GIF / SVG）；`CursorCartoon` = 手绘小人皮肤 |
+| `src/lib/pixelArt.ts` | 像素矩阵 → SVG 矩形（run-length 合并）；`PIXEL_CHARACTERS`（10 位角色）+ `PIXEL_ARROW`（11×15，尖端在 (0,0)）+ `findCharacter` / `pickRandomCharacter`；颜色只走 CSS 变量，主题自动反相 |
+| `src/components/cursorStyles.ts` | 运行时注入的 CSS（彻底隐藏系统光标 + 箭头 / 竖线 / 皮肤动画），卸载时完整移除 |
 
 ### 15.2 总开关：`--motion-play-state`
 
@@ -483,18 +487,21 @@ grep -c -- '--bg-primary' build/static/css/*.css
 
 | 字段 | 说明 |
 | --- | --- |
-| `skin` | `"pixel"`（默认，内置「赛博像素小人」）/ `"cartoon"`（手绘矢量小人，会眨眼 / 挥手），其余写法一律回落成 `pixel` |
-| `spriteUrl` | 填自己的图案就整体替换：支持 PNG / GIF / SVG。图片放 `public/` 就写 `"/cursor.png"`（**文件名别用中文**）；留空 = 用内置像素小人 |
+| `skin` | `"pixel"`（默认，内置「像素箭头 + 像素小人」）/ `"cartoon"`（手绘矢量小人，会眨眼 / 挥手），其余写法一律回落成 `pixel` |
+| `randomSkin` | `true`（默认）= 每次刷新从 10 位内置角色里随机抽一位（挂载时抽一次，同一次访问内稳定） |
+| `character` | 角色 id 或序号（见 `src/lib/pixelArt.ts` 的 `PIXEL_CHARACTERS`）。留空 = 跟随 `randomSkin`；填了就以它为准（截图 / 视觉回归用）。写错时静默回落，`portfolio.config.test.js` 会拦住 |
+| `spriteUrl` | 填自己的图案就整体替换：支持 PNG / GIF / SVG。图片放 `public/` 就写 `"/cursor.png"`（**文件名别用中文**）；留空 = 用内置像素小人（填了它 `randomSkin` 不生效） |
 | `spriteWidth` | 精灵显示宽度（px），高度按图案比例自动算（内置图案是 12:16），默认 30 |
-| `tilt` | 悬停到可点击元素（`a[href]` / `button` / `[data-cursor="pointer"]` …）时的旋转角度（deg），`0` = 只放大不旋转 |
+| `tilt` | 悬停到可点击元素（`a[href]` / `button` / `[role="option"]` / `[data-cursor="pointer"]` …）时的旋转角度（deg），`0` = 只放大不旋转 |
 | `enabled` | `false` = 整体关掉，回到系统光标 |
 
 补充约定：
 
-- 输入框 / `textarea` / `[contenteditable]` / `[data-cursor="native"]` 会自动交还系统光标（保住文本插入点体验），光标两层同时淡出；
+- **原生光标是彻底隐藏的**（`cursor: none !important` 连 `*::before` / `*::after` 一起，输入框也不例外）：不再有「交还系统光标」那套逻辑，否则同一坐标会同时出现两个光标；
+- 输入框 / `textarea` / `[contenteditable]` / `[data-cursor="text"]` 上改由 **像素竖线** 提示插入点（`.cur--text`，箭头淡出、竖线接管），保留「这里能打字」的心理暗示；
 - 想给某个可点击元素加悬停气泡，写 `data-cursor-text="打开项目"`；
 - 触屏 / 不支持 hover 的设备**完全不渲染光标**（保留系统原生手感、也不注入任何样式）；
-- 改内置像素图案：直接改 `src/lib/pixelArt.ts` 的 `PIXEL_CHARACTER`（12×16 字符矩阵：`.` 透明 / `o` 描边 / `f` 填充 / `m` 装饰 / `g` 发光）。矩阵不等宽或出现未知字符会**立刻抛错**，`src/lib/pixelArt.test.js` 会拦住；
+- 改内置像素图案：在 `src/lib/pixelArt.ts` 的 `PIXEL_CHARACTERS` 里加 / 改角色（**统一 12×16** 字符矩阵：`.` 透明 / `o` 描边 / `f` 填充 / `m` 装饰 / `g` 发光）。矩阵不等宽、出现未知字符、或漏掉某种角色，`src/lib/pixelArt.test.js` 会拦住；
 - 颜色别写死：只改组件级变量 `--cur-px-line` / `--cur-px-face` / `--cur-px-mark` / `--cur-px-glow`（默认分别取 `--text-primary` / `--bg-primary` / `--accent` / `--text-secondary`），这样深浅主题自动反相、悬停反相也只是一改变量。
 
 ### 15.4 加一处入场 / 视差 / 新页面
@@ -502,9 +509,13 @@ grep -c -- '--bg-primary' build/static/css/*.css
 ```jsx
 <Reveal direction="up" delay={0.12} as="li">…</Reveal>        // 列表项：as 换标签，别多套一层
 <Parallax speed={28} className="parallax-fill">…</Parallax>   // 视差层：speed 正 = 向上漂（看起来更慢）
+<SplitText as="h1" text="Hi There!" by="word" stagger={0.07} />          // 逐词入场 + 高亮扫过
+<SplitText text="I'M 莎莎 SHASHA" highlight="莎莎 SHASHA" charClassName="main-name" />  // 命中片段挂高亮类
 ```
 
 - 风格统一是「淡入 + 24px 上移 + 0.7s expo-out」；列表按 `index * 0.08` 依次浮现。**别再往里塞弹跳 / 旋转**，那是廉价感的来源；
+- `SplitText` 只接**纯文本字符串**（拆完再拼回去必须和原文一模一样）；长句用 `by="word"`（省一半节点），短标题用 `by="char"`；
+- `SplitText` 的高亮扫过是「白色光带 + `mix-blend-mode: difference`」：经过之处黑白互换，所以深浅主题都不用另配颜色。`.split-text` 上的 `isolation: isolate` 不能删（否则会把整块背景一起反相）；
 - `Reveal` 内部是 `whileInView`（IntersectionObserver）只播一次，元素一进视口就到位；
 - `Parallax` 的 `className` 常常是必要的（例如 `parallax-fill`）：`img { width: 100% }` 需要一个百分比参照，多出来的一层 div 不加 `position: relative` 会把图弄塌；
 - `SkillSection` 自带滚动驱动动画（`data-motion`），**不要**再套 `Reveal` / `Parallax`（两套动画会互相盖，见 `Home.js` 里的注释）；
@@ -514,27 +525,29 @@ grep -c -- '--bg-primary' build/static/css/*.css
 ### 15.5 验证
 
 ```bash
-npm test -- --watchAll=false    # 13 套件 / 82 用例（含 Reveal / Parallax / PageTransition / pixelArt / 光标皮肤 / 播放器）
+npm test -- --watchAll=false    # 15 套件 / 114 用例（含 Reveal / SplitText / Parallax / PageTransition / pixelArt / 光标皮肤 / 播放器 / 品牌图标）
 npx tsc --noEmit                # 动效组件是 TS，类型必须干净（0 输出 = 通过）
 npm run build                   # 生产构建（CI=true 时 lint 警告会被当错误）
 ```
 
 浏览器手查清单（改完动效必走一遍）：
 
-1. **光标**：移动时小人被「拖着走」但箭头严格咬住坐标；悬停按钮 → 放大 + 轻微旋转 + 气泡；按下 → 缩一下并反向轻转；移进输入框 → 换回文本光标；F12 里 `document.documentElement` 应带 `has-custom-cursor`。
-2. **平滑滚动**：滚轮一格一格跳 = Lenis 没接管（先查 `--motion-play-state` 是否 `running`、浏览器是否有 `ResizeObserver`）；播放器歌单内滚动应仍是原生（靠 `data-lenis-prevent`）。
+1. **光标**：鼠标动一格箭头与小人就动一格（位置零弹簧，都咬住坐标）；悬停按钮 → 放大 + 轻微旋转 + 箭头反相 + 气泡；按下 → 缩一下并像素位移一格；移进输入框 → 箭头换成会闪的像素竖线；F12 里 `document.documentElement` 应带 `has-custom-cursor`，刷新几次应能看到不同角色。
+2. **平滑滚动**：滚轮一格一格跳 = Lenis 没接管（先查 `--motion-play-state` 是否 `running`、浏览器是否有 `ResizeObserver`）；滚到页面顶部 / 底部不应再有「顿一下」（靠 `overscroll-behavior-y: none`）；播放器歌单内滚动应仍是原生（靠 `data-lenis-prevent`）。
 3. **切页**：旧页淡出 → 遮罩自下而上扫过 → 新页就位，全程无白闪；首屏不扫（首屏入场交给 `LoadingScreen`）；点当前路由不扫（`seen.current === pathname` 直接 return）。
-4. **静音回归**：把 `--motion-play-state` 临时改成 `paused` 再走 1~3 步 —— 光标仍在、内容完整、只是不动；遮罩与视差位移都不出现。
+4. **静音回归**：把 `--motion-play-state` 临时改成 `paused` 再走 1~3 步 —— 光标仍在、内容完整、只是不动；遮罩与视差位移都不出现；Hero 标题不再拆字（`data-split="paused"`）。
 
 ### 15.6 坑（改之前先看）
 
 1. **别把动效开关写进 `portfolio.config.js`**：配置里只有 `motion.lenis` 参数（`portfolio.config.test.js` 会断言这一点），开关统一走 CSS 变量 —— 否则「关动效」要改两处。
-2. **`paused` 绝不能藏内容**：新写动画沿用「暂停时用终止状态渲染（`initial={false}`）」的做法，永远不要让内容停在 `opacity: 0` 或位移里。`Reveal` / `Parallax` / `PageTransition` 都已经遵守。
+2. **`paused` 绝不能藏内容**：新写动画沿用「暂停时用终止状态渲染（`initial={false}`）」的做法，永远不要让内容停在 `opacity: 0` 或位移里。`Reveal` / `SplitText` / `Parallax` / `PageTransition` 都已经遵守。
 3. **Lenis 改的是真实滚动位置**（`window.scrollY`），所以 `useScroll` / `useTransform` 量到的进度始终准确。哪天换成「给内容容器套 transform」的平滑滚动方案，`Parallax` 与 `SkillSection` 的滚动测量会立刻失准。
-4. **jsdom 里的 `IntersectionObserver` 是 `setupTests.js` 的空实现**（只注册回调、不触发），所以 `whileInView` 在测试里永远停在初始态：**别断言「元素最终可见」**，要断言结构 / 标记（`data-reveal` / `data-parallax` / `data-route-curtain`）以及 `paused` 分支。
-5. **光标与遮罩都用 `createPortal` 挂 `document.body`**：祖先的 `transform` / `filter` 会让 `position: fixed` 失效或把绘制限制在局部层里；改这两处时别顺手挪回组件树里。
-6. **`will-change` 只加在 `.reveal` 元素本身**：别写 `*` 或给父级批量提升，元素一多滚动反而更卡。
+4. **jsdom 里的 `IntersectionObserver` 是 `setupTests.js` 的空实现**（只注册回调、不触发），所以 `whileInView` 在测试里永远停在初始态：**别断言「元素最终可见」**，要断言结构 / 标记（`data-reveal` / `data-split` / `data-parallax` / `data-route-curtain`）以及 `paused` 分支。
+5. **光标与遮罩都用 `createPortal` 挂 `document.body`**：祖先的 `transform` / `filter` / `backdrop-filter` 会让 `position: fixed` 失效或把绘制限制在局部层里；改这两处时别顺手挪回组件树里。
+6. **`will-change` 只加在 `.reveal` / `.split-text__unit` 这类小元素本身**：别写 `*` 或给父级批量提升，元素一多滚动反而更卡。
 7. **`RouteCurtain` 的 `key={sweep}` 不能删**：这是「连续切页时遮罩能重播」的唯一依据（同一个 motion 元素不会重播已有动画）。
+8. **光标位置是「零弹簧」的，别再加回去**：`figureX/figureY` 直接吃 `pointerX/pointerY`（只有 scale / rotate / opacity 走弹簧）。加回弹簧 = 鼠标停下后小人还在追，主观感受就是「不跟手」。
+9. **`.split-text` 的 `isolation: isolate` 不能删**：高亮扫过靠 `mix-blend-mode: difference`，没有独立混合上下文就会把整块背景一起反相。
 
 
 
@@ -599,34 +612,57 @@ npm run build                   # 生产构建（CI=true 时 lint 警告会被�
   `player.volume(v, true)` 的第二个参数 = 不写 APlayer 自己的 storage（音量统一存在我们的 `shasha-music-player` prefs 里）。
   触屏设备（`@media (hover: none)`）隐藏音量入口，音量交给系统按键。
 
-### 16.4 层级（下拉框不再压住控制条）
+### 16.4 平台 / 榜单下拉（自绘 listbox，弃用原生 `<select>`）
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/components/MusicPlayer.js` | 触发按钮（`.mp-select-trigger`）+ 弹层（`.mp-menu`，`createPortal` 到 `body`）；状态 `pickerOpen` / `menuBox`；键盘 ↑↓ / Home / End / Esc |
+| `src/components/MusicBrandIcon.tsx` | 六个频道的自绘单色图标 + `brandKeyOf(platform)` 判定（配置里的频道 → 图标种类） |
+
+判定优先级写在 `RULES` 里（`brandKeyOf`）：**spotify → 抖音 → 汽水 → 纯音乐 → QQ → 网易云**。
+抖音 / 汽水 / 纯音乐在配置里的 `provider` 也是 `netease`，所以必须靠 `group` / `key` **先**认出频道，
+最后才轮到 `provider` 兜底 —— 顺序错了六个图标会退化成同一枚（`MusicBrandIcon.test.js` 拦这个）。
+
+弹层的三条硬约束：
+
+1. **`createPortal` 到 `document.body`**：面板本身有 `backdrop-filter` 与 `overflow: hidden`，
+   面板内的弹层会被裁掉；`filter` / `backdrop-filter` 还会把 `position: fixed` 后代的包含块拽回面板内部，
+   所以「挂在面板里 + fixed」也救不了，必须挂到 body；
+2. **`position: fixed` + 每次打开按触发按钮的矩形定位**（下方放不下就向上翻，`data` 见 `menuBox.placement`），
+   窗口 resize / 任意内部滚动时重算（`scroll` 不冒泡，但捕获阶段监听能收到，所以用 `capture: true`）；
+3. **`z-index: 2147483000`**：高于播放器（`.music-player` = 9999）、低于自定义光标（2147483647），
+   否则弹层会把光标盖住。
+
+### 16.5 层级（弹层已经不再压住控制条）
 
 | 层 | z-index | 说明 |
 | --- | --- | --- |
-| `.mp-picker`（平台 / 榜单） | 5 | 永远在最上面，自建层叠上下文 |
+| `.mp-menu`（平台弹层，portal 到 body） | `2147483000` | 高于播放器、低于自定义光标 |
+| `.mp-picker`（触发按钮所在行） | 5 | 面板内的层叠上下文（弹层已不依赖它） |
 | `.mp-controls` | 2 | 控制条 |
 | `.mp-aplayer` / `.mp-stage` | 1 | 唱机台面 |
 | `.mp-mask`（加载 / 错误遮罩） | 6 | 临时盖住整块 stage |
 
-- **原生 `<select>` 的弹出列表由浏览器画在 top layer，`z-index` 管不到它**（这是 HTML 规范行为，不是 bug）。
-  所以「展开时遮挡控制条」只能靠布局解决：`.mp-picker` 独占一行、上下都留白，
-  加 `appearance: none` + 自绘箭头 + `border-radius: 999px` + `1px var(--border-strong)` 边框，
-  高度压到 26px，与黑白极简一致。
-  （如果以后要求「弹层也必须自己画」，得换自定义 listbox —— 代价是丢掉原生键盘 / 无障碍行为，目前不需要。）
+- 原生 `<select>` 的弹出列表由浏览器画在 top layer（`z-index` 管不到它，这是 HTML 规范行为），
+  而且它的配色跟着系统走（深色页面里会冒出一块系统灰），所以**整体换成自绘 listbox**（见 16.4）；
+- 触发按钮是普通按钮，留在文档流里，不再挤压唱机与控制条；弹层是 `fixed` 浮层，
+  展开时只盖住下方的按钮，收起即消失。
 
-### 16.5 验证
+### 16.6 验证
 
 ```bash
-npm test -- --watchAll=false --testPathPattern MusicPlayer   # 20 用例：结构 / 图标 / 循环 / 进度 / 音量 / 样式契约
+npm test -- --watchAll=false --testPathPattern MusicPlayer   # 23 用例：结构 / 图标 / 下拉交互 / 循环 / 进度 / 音量 / 样式契约
+npm test -- --watchAll=false --testPathPattern MusicBrandIcon # 3 用例：频道 → 图标判定
 npx tsc --noEmit                                            # 0 输出 = 通过
 npm run build                                               # CI=true 时 lint 警告即失败
 ```
 
 浏览器手查：① 面板是否约 264px 宽、唱片约 104px；② 五个按钮是否一行居中、图标是否齐全；
 ③ 点播放能否听到声音、唱片开始转、按钮变暂停；④ 拖进度条是否跟手；
-⑤ 循环按钮角标 a11y 文案是否随模式变化；⑥ 打开下拉是否不会盖住控制条；⑦ 深浅主题各看一遍配色。
+⑤ 循环按钮角标 a11y 文案是否随模式变化；⑥ 打开下拉是否浮在唱机与控制条之上、六个频道图标各不相同、
+选中项反白；点页面别处 / 按 Esc 能否收起；⑦ 深浅主题各看一遍配色。
 
-### 16.6 坑（改之前先看）
+### 16.7 坑（改之前先看）
 
 1. **别把 `.aplayer-controller` 从 DOM 里删掉**（只能 `display: none`）：APlayer 的 `seek()` / `volume()` /
    `setUIPlaying()` 都会回来改这条子树上的行内样式，元素不在 DOM 里就得多写一堆空值判断。
@@ -635,10 +671,14 @@ npm run build                                               # CI=true 时 lint �
 4. **时长未知时显示 `--:--`**（`duration > 0 ? formatTime(duration) : "--:--"`），别让 `NaN:NaN` 出现在界面里。
 5. **测试替身必须补齐新接口**：`MusicPlayer.test.js` 里的 FakePlayer 需要 `toggle / pause / skipBack / skipForward /
    seek / volume / options.loop / list.toggle`，以及 `audio.currentTime` / `audio.duration`，否则新按钮一点就 TypeError。
-6. **样式相关的验收写在测试里**：jsdom 不解析 `src/style.css`，所以「面板 264px、`.mp-picker` z-index 5、
-   `.mp-buttons` 是 flex + gap 8px、原生控制条 `display: none`」这几条由
+6. **样式相关的验收写在测试里**：jsdom 不解析 `src/style.css`，所以「面板 264px、`.mp-menu` 是 fixed + 高层级、
+   `.mp-buttons` 是 flex + gap 8px、`.mp-picker select` 已删除、原生控制条 `display: none`」这几条由
    `describe("MusicPlayer 样式契约")` 直接读样式文件断言 —— 改样式时留意它别被删。
 7. **`--mp-panel-width` / `--mp-disc` 与组件里的 `listMaxHeight` 是同一套尺寸**：只改 CSS 会让歌单抽屉与新面板不匹配。
 8. **无 `:has()` 兜底的场景已经没了**：以前靠 `.mp-panel:has(.aplayer-button.aplayer-pause)` 猜播放状态，
    现在唱片 / 唱针 / 图标只跟 React 的 `playing`（原生事件同步）—— 别再把 `:has()` 那套加回来。
+9. **弹层别挪回面板里**（第 16.4 节）：`backdrop-filter` + `overflow: hidden` 会把它裁掉，
+   而且 `backdrop-filter` 会把 `fixed` 的包含块拽回面板内部 —— 只有 portal 到 `body` 才盖得住。
+10. **触发按钮在加载中是 `disabled`**：测试里点开下拉前要先 `await` 榜单加载完成，否则点了个寂寞
+    （`MusicPlayer.test.js` 里就是在这一条上踩过坑）。
 
