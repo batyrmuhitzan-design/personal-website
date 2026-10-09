@@ -143,33 +143,63 @@ beforeEach(() => {
   mockPlaylistFetch();
 });
 
+/** 等一帧：弹层打开后「把焦点移到当前选中项」是排队到 requestAnimationFrame 的 */
+const nextFrame = () =>
+  act(async () => {
+    await new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+  });
+
 describe("MusicPlayer", () => {
-  it("渲染平台下拉与分组，默认选中配置里的平台", async () => {
+  it("自绘平台下拉：触发按钮显示当前频道，展开后分组列出全部榜单并标出选中项", async () => {
     render(<MusicPlayer />);
 
-    const select = screen.getByLabelText("选择音乐平台与榜单");
-    expect(select.value).toBe(profile.musicPlayer.defaultPlatform);
-    expect(screen.getAllByRole("option")).toHaveLength(profile.musicPlayer.platforms.length);
+    const trigger = screen.getByLabelText("选择音乐平台与榜单");
+    expect(trigger).toHaveAttribute("aria-haspopup", "listbox");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    // 触发按钮上直接显示当前频道（图 + 榜单名 + 分组名），不用展开也能看清
+    const current = profile.musicPlayer.platforms.find(
+      (item) => item.key === profile.musicPlayer.defaultPlatform
+    );
+    expect(trigger).toHaveTextContent(current.name);
+    expect(trigger).toHaveTextContent(current.group);
+    expect(trigger.querySelector(".mp-brand")).toHaveAttribute("data-brand", "spotify");
+    // 收起状态下没有弹层
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
 
-    // 分组标签（Spotify / 网易云音乐 / QQ 音乐 / 抖音 / 纯音乐 / 汽水音乐）
+    // 首屏只预加载、不自动播放（避免浏览器拦截与无谓打扰）；
+    // 加载中触发按钮是禁用的，所以先等列表就绪再点开
+    await waitFor(() => expect(instances).toHaveLength(1));
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+    expect(instances[0].calls).toEqual(["clear", "add"]);
+    expect(instances[0].play).not.toHaveBeenCalled();
+
+    fireEvent.click(trigger);
+
+    const options = screen.getAllByRole("option");
+    expect(options).toHaveLength(profile.musicPlayer.platforms.length);
+    // 只有一项被标为选中，且就是配置里的默认平台
+    const selected = options.filter(
+      (option) => option.getAttribute("aria-selected") === "true"
+    );
+    expect(selected).toHaveLength(1);
+    expect(selected[0]).toHaveAttribute("data-platform", profile.musicPlayer.defaultPlatform);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    // 分组标题（Spotify / 网易云音乐 / QQ 音乐 / 抖音 / 纯音乐 / 汽水音乐）
     const groups = Array.from(new Set(profile.musicPlayer.platforms.map((item) => item.group)));
     groups.forEach((group) => {
       expect(screen.getByRole("group", { name: group })).toBeInTheDocument();
     });
-
-    // 首屏只预加载、不自动播放（避免浏览器拦截与无谓打扰）
-    await waitFor(() => expect(instances).toHaveLength(1));
-    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
-    // 首屏只有「清空 + 载入」，没有任何播放动作
-    expect(instances[0].calls).toEqual(["clear", "add"]);
-    expect(instances[0].play).not.toHaveBeenCalled();
   });
 
-  it("切换平台时清空列表、载入新榜单并自动播放", async () => {
+  it("选中弹层里的榜单：切换平台、收起弹层、把焦点还给触发按钮", async () => {
     render(<MusicPlayer />);
     await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
 
-    fireEvent.change(screen.getByLabelText("选择音乐平台与榜单"), { target: { value: "netease-hot" } });
+    const trigger = screen.getByLabelText("选择音乐平台与榜单");
+    fireEvent.click(trigger);
+
+    fireEvent.click(document.querySelector('[role="option"][data-platform="netease-hot"]'));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -183,6 +213,65 @@ describe("MusicPlayer", () => {
     expect(instances[0].calls).toEqual(["clear", "add", "clear", "add", "switch", "play"]);
     expect(screen.queryByText("重试")).not.toBeInTheDocument();
     expect(screen.getByText(`${PLAYLISTS["netease-hot"].length} 首`)).toBeInTheDocument();
+
+    // 弹层收起（options 不再存在）、焦点回到触发按钮上
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger).toHaveTextContent("热歌榜");
+  });
+
+  it("下拉的关闭路径：点击外部 / Esc / 面板折叠都会收起弹层", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+
+    const trigger = screen.getByLabelText("选择音乐平台与榜单");
+
+    // ① 点击弹层与触发按钮之外的任意位置
+    fireEvent.click(trigger);
+    expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+
+    // ② Esc（全局监听）：关闭并把焦点还给触发按钮
+    fireEvent.click(trigger);
+    expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(document.activeElement).toBe(trigger);
+
+    // ③ 折叠面板：不能留一块浮在空中的列表
+    fireEvent.click(trigger);
+    expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByLabelText("折叠播放器"));
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+  });
+
+  it("弹层键盘导航：↑↓ 环绕移动焦点、Enter 选中当前项", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+
+    fireEvent.click(screen.getByLabelText("选择音乐平台与榜单"));
+    await nextFrame();
+    const options = screen.getAllByRole("option");
+    const listbox = screen.getByRole("listbox");
+
+    // 打开时焦点落在当前选中项（默认 Spotify 那一项）
+    expect(document.activeElement).toBe(options[0]);
+
+    fireEvent.keyDown(listbox, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(options[1]);
+    // 从第一项往上走会绕到最后一项（环绕）
+    fireEvent.keyDown(options[1], { key: "ArrowUp" });
+    expect(document.activeElement).toBe(options[0]);
+    fireEvent.keyDown(options[0], { key: "ArrowUp" });
+    expect(document.activeElement).toBe(options[options.length - 1]);
+    // End / Home 直接跳首尾
+    fireEvent.keyDown(listbox, { key: "Home" });
+    expect(document.activeElement).toBe(options[0]);
+
+    // Enter 走原生 click，选中后弹层收起
+    fireEvent.click(document.activeElement);
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
   });
 
   it("解析服务不可用时给出错误提示与重试入口", async () => {
@@ -513,6 +602,38 @@ describe("MusicPlayer", () => {
     fireEvent.click(toggle);
     expect(document.querySelector("[data-mp-volume]")).not.toBeInTheDocument();
   });
+  it("每个频道都带自绘品牌图标：按 group / key / provider 判定，六种图标互不重复", async () => {
+    render(<MusicPlayer />);
+    await waitFor(() => expect(instances[0].list.audios).toHaveLength(PLAYLISTS.spotify.length));
+    fireEvent.click(screen.getByLabelText("选择音乐平台与榜单"));
+
+    /** 配置里的频道 → 期望的图标种类（抖音 / 汽水 / 纯音乐 的 provider 也是 netease，
+        所以这里同时钉住「必须靠 group / key 先认出频道」这件事） */
+    const expected = {
+      spotify: "spotify",
+      "netease-hot": "netease",
+      "tencent-hot": "tencent",
+      "douyin-hot": "douyin",
+      "douyin-viral": "douyin",
+      instrumental: "instrumental",
+      "soda-hot": "soda",
+    };
+
+    Object.entries(expected).forEach(([key, brand]) => {
+      const option = document.querySelector(`[role="option"][data-platform="${key}"]`);
+      expect(option).not.toBeNull();
+      const icon = option.querySelector(".mp-brand");
+      expect(icon).toHaveAttribute("data-brand", brand);
+      // 内联 SVG：不会额外发图标请求
+      expect(icon.querySelector("svg")).not.toBeNull();
+    });
+
+    // 六种图标互不重复（否则等于没做图标）
+    const brands = new Set(
+      Object.values(expected).concat(expected.spotify)
+    );
+    expect(brands.size).toBe(6);
+  });
 });
 
 /**
@@ -535,18 +656,29 @@ describe("MusicPlayer 样式契约", () => {
     expect(rule(".mp-stage {")).toContain("--mp-disc: 104px");
   });
 
-  it("下拉选择：自建层叠上下文压过唱机与控制条，胶囊边框 + 吃掉原生外观", () => {
+  it("下拉选择：弹层是 portal 到 body 的 fixed 浮层，压过播放器但低于自定义光标", () => {
     const picker = rule(".mp-picker {");
     expect(picker).toContain("position: relative");
     expect(picker).toContain("z-index: 5");
-    // 唱机 1、控制条 2，都排在它下面
-    expect(rule(".mp-stage {")).toContain("z-index: 1");
-    expect(rule(".mp-controls {")).toContain("z-index: 2");
 
-    const select = rule(".mp-picker select {");
-    expect(select).toContain("appearance: none");
-    expect(select).toContain("border-radius: 999px");
-    expect(select).toContain("var(--border-strong)");
+    // 触发按钮：胶囊边框 + 吃掉原生外观的旧规则已删除
+    const trigger = rule(".mp-select-trigger {");
+    expect(trigger).toContain("border-radius: 999px");
+    expect(trigger).toContain("var(--border-strong)");
+    expect(css).not.toContain(".mp-picker select");
+
+    // 弹层：fixed（否则会被面板的 overflow / backdrop-filter 裁掉）+ 高层级
+    const menu = rule(".mp-menu {");
+    expect(menu).toContain("position: fixed");
+    const menuZ = Number(/z-index:\s*(\d+)/.exec(menu)[1]);
+    expect(menuZ).toBeGreaterThan(9999); // 播放器 .music-player
+    expect(menuZ).toBeLessThan(2147483647); // 自定义光标
+    // 上下翻转时动画原点跟着换，展开方向看起来才对
+    expect(rule(".mp-menu--down {")).toContain("transform-origin: left top");
+    expect(rule(".mp-menu--up {")).toContain("transform-origin: left bottom");
+    // 品牌图标是单色矢量：跟随文字颜色（深浅主题 / 选中反白全自动）
+    expect(rule(".mp-brand {")).toContain("color: inherit");
+    expect(rule(".mp-menu-item.is-active {")).toContain("var(--accent-contrast)");
   });
 
   it("控制条：flex + center + gap 8px，主按钮实心，进度条是 2px 细线 + 8px 圆点", () => {

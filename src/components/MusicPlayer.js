@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import APlayer from "aplayer";
 import "aplayer/dist/APlayer.min.css";
 import {
+  Check,
   ListMusic,
   Pause,
   Play,
@@ -19,6 +21,7 @@ import {
   AiOutlineReload,
   AiOutlineUp,
 } from "react-icons/ai";
+import MusicBrandIcon from "./MusicBrandIcon";
 import profile from "../portfolio.config";
 
 /**
@@ -42,6 +45,18 @@ import profile from "../portfolio.config";
  *  （循环模式 / 上一曲 / 下一曲 / 播放列表），左右严格对称。
  *  进度与音量同样是自绘的 <input type="range">：拖动时直接调 APlayer 的
  *  seek() / volume()，只把 audio 元素当数据源，不依赖 APlayer 的 DOM 结构与主题样式。
+ *
+ *  平台选择：原生 <select> 换成自绘 listbox（.mp-select-trigger + .mp-menu）。
+ *  原生弹层由浏览器画在顶层（top layer，z-index 管不到），圆角 / 图标 / 深色
+ *  皮肤一律没法统一，所以这里自绘：
+ *    ‣ 用 createPortal 挂到 document.body + position: fixed —— 面板本身有
+ *      backdrop-filter 与 overflow: hidden，任何「面板内绝对定位」的弹层都会被
+ *      裁掉（filter / backdrop-filter 还会把 fixed 后代的包含块拽回面板内部），
+ *      只有挂到 body 才真的盖在唱机与控制条之上；
+ *    ‣ 打开时按触发按钮的矩形定位，下方空间不够就自动向上翻；
+ *    ‣ 每个频道带自绘品牌图标（见 MusicBrandIcon.tsx），分组标题保留；
+ *    ‣ 键盘可达：↑ / ↓ 移动、Enter 选中、Esc 关闭并把焦点还给按钮，
+ *      点击页面其他位置同样关闭。
  *
  *  组件生命周期：挂在 App.js 的 Routes 之外，路由切换不会卸载，
  *  因此 APlayer 实例与播放进度都能保持连续。
@@ -71,6 +86,14 @@ function readThemeColor() {
 }
 /** 同一首歌最多尝试几次（代理 → 重新解析），超过就交给 APlayer 自动跳过 */
 const MAX_ATTEMPTS = 2;
+
+/** 自绘下拉：弹层与触发按钮之间的间距、弹层最大高度、视口安全边距 */
+const MENU_GAP = 6;
+const MENU_MAX_HEIGHT = 260;
+const MENU_MIN_HEIGHT = 120;
+const VIEWPORT_PAD = 8;
+/** 弹层的 id：触发按钮的 aria-controls 指过来，测试也认它 */
+const MENU_ID = "mp-platform-menu";
 
 /**
  * 播放顺序：APlayer 的 `options.loop`（它的 `ended` 回调里真的会读这个值）。
@@ -448,8 +471,7 @@ function MusicPlayer() {
   }, [closed, collapsed, playerReady, syncLyrics]);
 
   const handlePlatformChange = useCallback(
-    (event) => {
-      const key = event.target.value;
+    (key) => {
       setPlatformKey(key);
       writePrefs({ platform: key });
       // 切换平台：清空当前播放列表 → 载入新榜单 → 自动播放
@@ -572,6 +594,166 @@ function MusicPlayer() {
 
   const toggleVolume = useCallback(() => setVolumeOpen((open) => !open), []);
 
+  /* ========================================================================
+     平台 / 榜单：自绘 listbox
+     ------------------------------------------------------------------------
+     原生 <select> 的弹层由浏览器画在顶层（top layer）：z-index / 圆角 / 图标
+     全都管不到它，深色页面里还会冒出一块系统灰。这里改成自绘弹层：
+       · 触发按钮就是唯一入口（aria-haspopup="listbox" / aria-expanded）；
+       · 弹层 portal 到 body + position: fixed —— 面板有 backdrop-filter 与
+         overflow: hidden，面板内定位的弹层会被裁掉（filter / backdrop-filter
+         还会把 fixed 后代的包含块拽回面板里），必须挂到 body 才盖得住；
+       · 每次打开按触发按钮的矩形定位，下方空间不足时自动向上翻；
+       · 键盘：↑↓ 移动、Home/End 跳首尾、Enter 选中、Esc 关闭并还焦。
+     ======================================================================== */
+  const pickerRef = useRef(null);
+  const menuRef = useRef(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [menuBox, setMenuBox] = useState(null);
+
+  /** 按触发按钮的矩形算弹层位置（可上翻），窗口尺寸变化时重算 */
+  const placeMenu = useCallback(() => {
+    const trigger = pickerRef.current;
+    if (!trigger || typeof window === "undefined") return;
+    const rect = trigger.getBoundingClientRect();
+    const below = window.innerHeight - rect.bottom - MENU_GAP - VIEWPORT_PAD;
+    const above = rect.top - MENU_GAP - VIEWPORT_PAD;
+    // 下方塞不下「最小高度」且上方更宽裕 → 向上展开
+    const openUp = below < MENU_MIN_HEIGHT && above > below;
+    const room = Math.max(MENU_MIN_HEIGHT, openUp ? above : below);
+    const height = Math.min(MENU_MAX_HEIGHT, room);
+    const width = rect.width;
+    setMenuBox({
+      placement: openUp ? "up" : "down",
+      left: Math.max(VIEWPORT_PAD, Math.min(rect.left, window.innerWidth - width - VIEWPORT_PAD)),
+      top: openUp ? rect.top - MENU_GAP - height : rect.bottom + MENU_GAP,
+      width,
+      height,
+    });
+  }, []);
+
+  const closePicker = useCallback(() => {
+    setPickerOpen(false);
+    setMenuBox(null);
+  }, []);
+
+  const openPicker = useCallback(() => {
+    placeMenu();
+    setPickerOpen(true);
+  }, [placeMenu]);
+
+  const togglePicker = useCallback(() => {
+    if (pickerOpen) closePicker();
+    else openPicker();
+  }, [pickerOpen, closePicker, openPicker]);
+
+  /** 选中某个频道：切换 + 收起弹层 + 焦点还给触发按钮 */
+  const selectPlatform = useCallback(
+    (key) => {
+      handlePlatformChange(key);
+      closePicker();
+      if (pickerRef.current) pickerRef.current.focus();
+    },
+    [handlePlatformChange, closePicker]
+  );
+
+  const focusOption = useCallback((index) => {
+    const options = menuRef.current ? menuRef.current.querySelectorAll('[role="option"]') : [];
+    if (!options.length) return;
+    const next = options[Math.max(0, Math.min(index, options.length - 1))];
+    if (next && next.focus) next.focus();
+  }, []);
+
+  const activeOptionIndex = useCallback(() => {
+    const options = menuRef.current ? Array.from(menuRef.current.querySelectorAll('[role="option"]')) : [];
+    return options.findIndex((option) => option.getAttribute("aria-selected") === "true");
+  }, []);
+
+  /** 弹层内键盘导航：↑↓ 环绕、Home/End 跳首尾、Tab 直接收起 */
+  const handleMenuKeyDown = useCallback(
+    (event) => {
+      const options = menuRef.current
+        ? Array.from(menuRef.current.querySelectorAll('[role="option"]'))
+        : [];
+      if (!options.length) return;
+
+      const move = (index) => {
+        const next = options[(index + options.length) % options.length];
+        next.focus();
+        // jsdom 里没有 scrollIntoView，先判断再调（测试环境不会因此炸掉）
+        if (typeof next.scrollIntoView === "function") next.scrollIntoView({ block: "nearest" });
+      };
+
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const currentIndex = options.indexOf(document.activeElement);
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        move(currentIndex < 0 ? (step > 0 ? 0 : options.length - 1) : currentIndex + step);
+        return;
+      }
+      if (event.key === "Home" || event.key === "End") {
+        event.preventDefault();
+        move(event.key === "Home" ? 0 : options.length - 1);
+        return;
+      }
+      if (event.key === "Tab") closePicker();
+    },
+    [closePicker]
+  );
+
+  /** 触发按钮上按 ↑↓ 直接展开（Enter / 空格交给原生 click） */
+  const handleTriggerKeyDown = useCallback(
+    (event) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      event.preventDefault();
+      openPicker();
+    },
+    [openPicker]
+  );
+
+  /* 打开时：定位 + 焦点落到当前选中项；关闭时不做多余的事 */
+  useEffect(() => {
+    if (!pickerOpen) return;
+    placeMenu();
+    const frame = requestAnimationFrame(() => focusOption(activeOptionIndex()));
+    return () => cancelAnimationFrame(frame);
+  }, [pickerOpen, placeMenu, focusOption, activeOptionIndex]);
+
+  /* 打开期间的全局监听：定位跟随、点击外部 / Esc 关闭 */
+  useEffect(() => {
+    if (!pickerOpen) return undefined;
+
+    // scroll 不冒泡，但捕获阶段能收到「任意内部滚动容器」的事件（capture: true）
+    const handleReflow = () => placeMenu();
+    const handleOutside = (event) => {
+      const target = event.target;
+      if (menuRef.current && menuRef.current.contains(target)) return;
+      if (pickerRef.current && pickerRef.current.contains(target)) return;
+      closePicker();
+    };
+    const handleKey = (event) => {
+      if (event.key !== "Escape") return;
+      closePicker();
+      if (pickerRef.current) pickerRef.current.focus();
+    };
+
+    window.addEventListener("resize", handleReflow);
+    window.addEventListener("scroll", handleReflow, true);
+    document.addEventListener("mousedown", handleOutside, true);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("resize", handleReflow);
+      window.removeEventListener("scroll", handleReflow, true);
+      document.removeEventListener("mousedown", handleOutside, true);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [pickerOpen, placeMenu, closePicker]);
+
+  /* 面板收起 / 关闭时，弹层跟着收掉（否则会留一块浮在空中的列表） */
+  useEffect(() => {
+    if (collapsed || closed) closePicker();
+  }, [collapsed, closed, closePicker]);
+
   if (CONFIG.enabled === false || !PLATFORMS.length) return null;
 
   const current = PLATFORMS.find((item) => item.key === platformKey);
@@ -649,31 +831,29 @@ function MusicPlayer() {
         {/* data-lenis-prevent：滚轮落在这一块时别被全站 Lenis 接管，
             否则歌单内部的滚动会被页面滚动抢走（Lenis 会沿 composedPath 向上查找该属性） */}
         <div className="mp-body" data-lenis-prevent>
-          {/* 平台 / 榜单：容器自建层叠上下文（position + z-index），永远压在唱机与控制条之上。
-              下拉展开的是浏览器原生弹层（渲染在顶层的 top layer，z-index 管不到它），
-              所以这里额外让它独占一行、上下都留出间距：无论弹层朝哪边展开，
-              都不会与下面的控制按钮重叠。 */}
+          {/* 平台 / 榜单：自绘下拉。触发按钮留在正常文档流里（不挤压下面的唱机与控制条，
+              弹层是 fixed 浮层）；容器 z-index:5 仍然有效，用于兜住不支持 portal 的场景。 */}
           <div className="mp-picker">
             <span className="mp-picker-label">平台 / 榜单</span>
-            <span className="mp-select">
-              <select
-                value={platformKey}
-                onChange={handlePlatformChange}
-                disabled={loading}
-                aria-label="选择音乐平台与榜单"
-              >
-                {groups.map((group) => (
-                  <optgroup key={group.title} label={group.title}>
-                    {group.items.map((item) => (
-                      <option key={item.key} value={item.key}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              <span className="mp-select-caret" aria-hidden="true" />
-            </span>
+            <button
+              type="button"
+              ref={pickerRef}
+              className={`mp-select-trigger${pickerOpen ? " is-open" : ""}`}
+              onClick={togglePicker}
+              onKeyDown={handleTriggerKeyDown}
+              disabled={loading}
+              aria-label="选择音乐平台与榜单"
+              aria-haspopup="listbox"
+              aria-expanded={pickerOpen}
+              aria-controls={pickerOpen ? MENU_ID : undefined}
+            >
+              <MusicBrandIcon platform={current} />
+              <span className="mp-select-text">
+                <strong className="mp-select-name">{current ? current.name : "—"}</strong>
+                <em className="mp-select-group">{current ? current.group : ""}</em>
+              </span>
+              <AiOutlineDown className="mp-select-caret" aria-hidden="true" />
+            </button>
           </div>
 
           <div className="mp-stage">
@@ -815,6 +995,64 @@ function MusicPlayer() {
           </div>
         </div>
       </section>
+
+      {/* 平台弹层：portal 到 body + position: fixed —— 面板的 backdrop-filter / overflow
+          会把「面板内的弹层」裁掉甚至把 fixed 拉回面板内部，只有挂在 body 上才真的
+          浮在唱机与控制条之上（z-index 见 style.css 的 .mp-menu）。 */}
+      {pickerOpen && menuBox
+        ? createPortal(
+            <div
+              id={MENU_ID}
+              ref={menuRef}
+              className={`mp-menu mp-menu--${menuBox.placement}`}
+              role="listbox"
+              aria-label="选择音乐平台与榜单"
+              data-lenis-prevent
+              style={{
+                left: menuBox.left,
+                top: menuBox.top,
+                width: menuBox.width,
+                maxHeight: menuBox.height,
+              }}
+              onKeyDown={handleMenuKeyDown}
+            >
+              {groups.map((group) => (
+                <div
+                  className="mp-menu-group"
+                  role="group"
+                  aria-label={group.title}
+                  key={group.title}
+                >
+                  {/* 分组标题只做视觉分隔：role="group" + aria-label 已经把它读出来了，
+                      这里 aria-hidden 免得屏幕阅读器把同一个名字念两遍 */}
+                  <p className="mp-menu-group-title" aria-hidden="true">
+                    {group.title}
+                  </p>
+                  {group.items.map((item) => {
+                    const active = item.key === platformKey;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        className={`mp-menu-item${active ? " is-active" : ""}`}
+                        data-platform={item.key}
+                        onClick={() => selectPlatform(item.key)}
+                      >
+                        <MusicBrandIcon platform={item} />
+                        <span className="mp-menu-name">{item.name}</span>
+                        <span className="mp-menu-tag">{item.group}</span>
+                        {active ? <Check size={13} className="mp-menu-check" aria-hidden="true" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

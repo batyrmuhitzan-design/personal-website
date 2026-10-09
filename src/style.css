@@ -126,9 +126,8 @@ button:focus {
 
 @media (max-width: 767px) {
   .Typewriter__wrapper {
-    font-size: 1.4em !important;
+    font-size: 1.35em !important;
     font-weight: 500 !important;
-    position: absolute !important;
   }
   .Typewriter__cursor {
     display: none !important;
@@ -600,10 +599,102 @@ button:focus {
   max-width: 240px;
 }
 
-/* ---------- Hero 打字机与插图 ---------- */
+/* ---------- Hero 打字机（终端卡片）与插图 ----------
+   视觉：把打字机包成一台「终端窗口」——
+     顶栏三个圆点 + 路径（shasha@portfolio）、正文一行提示符 `~ $ whoami`，
+     打字机输出紧跟其后。3D Tilt 与悬浮光泽由 react-parallax-tilt 的 glare 提供，
+     这里只负责卡片本身的外观与 sheen 渐变（Tilt 的 glare 层由库注入）。 */
+.typewriter-tilt {
+  /* Tilt 会在这层加 transform / perspective：给它一点厚度感，
+     让卡片与顶栏看起来是同一个立体物件 */
+  transform-style: preserve-3d;
+}
+
 .typewriter-box {
-  padding: 46px 0 0 0;
+  position: relative;
+  margin: 46px 0 0;
+  padding: 30px 16px 16px;
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 100% at 12% 0%, var(--accent-soft), var(--overlay-fade) 60%),
+    linear-gradient(160deg, var(--surface-glass-strong), var(--surface-glass));
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 14px 30px var(--shadow-color), inset 0 1px 0 var(--shadow-inset);
+  overflow: hidden;
   text-align: left;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.typewriter-box:hover {
+  border-color: var(--accent-line);
+  box-shadow: 0 18px 38px var(--accent-glow), inset 0 1px 0 var(--shadow-inset);
+}
+
+/* 斜向柔光：静置时很淡，鼠标悬停慢慢扫亮 —— 与 Tilt 的 glare 叠加成「玻璃反光」 */
+.typewriter-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 34%,
+    var(--accent-soft-strong) 50%,
+    transparent 66%
+  );
+  opacity: 0;
+  transform: translateX(-18%);
+  transition: opacity 0.5s ease, transform 0.9s ease;
+  pointer-events: none;
+}
+
+.typewriter-box:hover::after {
+  opacity: 0.7;
+  transform: translateX(18%);
+}
+
+/* 顶栏：三个圆点 + 路径，模拟终端标题栏 */
+.typewriter-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 10px;
+  background: var(--surface-glass);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.typewriter-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.typewriter-path {
+  margin-left: 6px;
+  font-size: 0.62em;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+/* 正文：提示符 + 打字机输出，同一基线排列 */
+.typewriter-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 2.6em;
+}
+
+.typewriter-prompt {
+  flex: 0 0 auto;
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .home-tagline {
@@ -612,6 +703,120 @@ button:focus {
   line-height: 1.9;
   color: var(--text-secondary);
   letter-spacing: 0.5px;
+}
+
+/* ---------- SplitText：逐字 / 逐词入场 + 黑白高亮扫过 ----------
+   · .split-text 建一个独立的混合上下文（isolation: isolate），
+     这样 sheen 的 mix-blend-mode: difference 只反相这段文字，
+     不会把整块 Hero 背景一起搅进来；
+   · sheen 是「白带 + difference」：经过之处黑白互换，深浅主题都是同一种效果。 */
+.split-text {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+
+.split-text__unit {
+  display: inline-block;
+  /* 逐字入场时字与字不要被 GPU 合成层切掉边缘 */
+  will-change: transform, opacity, filter;
+}
+
+.split-text__sheen {
+  position: absolute;
+  inset: -0.25em -0.15em;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.92) 50%,
+    transparent 62%
+  );
+  mix-blend-mode: difference;
+  opacity: 0;
+  transform: translateX(-110%);
+  animation: split-text-sweep var(--split-sweep-duration, 1.1s) ease-in-out
+    var(--split-sweep-delay, 0.4s) 1 both;
+}
+
+@keyframes split-text-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-110%);
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+}
+
+/* 站内动效开关（--motion-play-state）为 paused 时：扫过直接不出现，
+   文字本身由 SplitText 以纯文本渲染，不会停在半透明状态 */
+.split-text__sheen {
+  animation-play-state: var(--motion-play-state, running);
+}
+
+/* ---------- 简介区：背景网格（随滚动反向漂移） ---------- */
+.about-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  /* 网格只做氛围，压到很淡；内容在 .about-inner 里抬到 z-index:1 */
+  opacity: 0.55;
+}
+
+/* 视差层要留出上下余量，位移时边缘才不会露出空白 */
+.about-grid .parallax-layer {
+  position: absolute;
+  inset: -22% 0;
+}
+
+.about-grid-lines {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(to right, var(--accent-soft-strong) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--accent-soft-strong) 1px, transparent 1px);
+  background-size: 46px 46px;
+  /* 中间亮、四周淡出：网格只在文案附近可辨，不与正文抢注意力 */
+  -webkit-mask-image: radial-gradient(62% 58% at 50% 42%, #000 0%, transparent 76%);
+  mask-image: radial-gradient(62% 58% at 50% 42%, #000 0%, transparent 76%);
+}
+
+.about-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* 窄屏：终端框的提示符与输出分两行，长文案不会挤出卡片；
+   网格间距收紧一档，避免视觉上过于密集。
+   ⚠️ 必须放在上面那些基础规则「之后」：同一特异度下后者胜，
+   写在文件开头（基础规则之前）等于没写。 */
+@media (max-width: 767px) {
+  .typewriter-box {
+    margin-top: 32px;
+    padding: 28px 12px 12px;
+  }
+
+  .typewriter-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-height: 3.4em;
+  }
+
+  .about-grid-lines {
+    background-size: 34px 34px;
+  }
 }
 
 .hero-illustration-col {
@@ -997,12 +1202,11 @@ button:focus {
   cursor: not-allowed;
 }
 
-/* ---------- 平台 / 榜单选择 ---------- */
+/* ---------- 平台 / 榜单选择（自绘下拉，弃用原生 <select>） ---------- */
 .mp-picker {
-  /* 自建层叠上下文：永远压在唱机（.mp-stage z-index:1）与控制条（.mp-controls z-index:2）之上。
-     展开下拉时看着「错位遮挡」，多半就是这几层没排好先后。
-     注意：原生 <select> 的弹出列表由浏览器画在顶层（top layer），z-index 管不到它，
-     所以这里还让它独占一行、上下都留白：弹层朝哪边展开都不会贴到控制按钮。 */
+  /* 自建层叠上下文：面板内的其他元素压不过它。
+     真正的弹层（.mp-menu）是 portal 到 body 的 fixed 浮层，不靠这里的 z-index，
+     所以不会再出现「原生弹层画在顶层、挡住控制按钮」的问题。 */
   position: relative;
   z-index: 5;
   display: flex;
@@ -1018,65 +1222,193 @@ button:focus {
   white-space: nowrap;
 }
 
-/* 外框负责视觉，里面的 <select> 铺满并吃掉原生外观 */
-.mp-select {
+/* 触发按钮：品牌图标 + 榜单名 + 分组名 + 箭头，整颗胶囊都能点 */
+.mp-select-trigger {
   position: relative;
   display: flex;
   align-items: center;
+  gap: 7px;
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.mp-picker select {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 26px;
-  padding: 0 22px 0 10px;
-  font-size: 0.8em;
-  line-height: 24px;
+  height: 30px;
+  padding: 0 24px 0 9px;
   color: var(--text-primary);
   background: var(--surface-glass-strong);
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   outline: none;
   cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
+  text-align: left;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.mp-picker select:hover:not(:disabled) {
+.mp-select-trigger:hover:not(:disabled),
+.mp-select-trigger.is-open {
   border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
-.mp-picker select:focus,
-.mp-picker select:focus-visible {
+.mp-select-trigger:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
-.mp-picker select:disabled {
+.mp-select-trigger:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* 自绘下拉箭头（两个边框拼的 45° 角），比浏览器默认箭头更贴黑白极简 */
+.mp-select-text {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  /* 名字太长时省略号收在名字上，分组名永远完整 */
+  flex: 1 1 auto;
+}
+
+.mp-select-name {
+  font-size: 0.8em;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mp-select-group {
+  flex: 0 0 auto;
+  font-size: 0.64em;
+  font-style: normal;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 展开态箭头翻转（图标现在来自 react-icons，靠 font-size 定尺寸） */
 .mp-select-caret {
   position: absolute;
   top: 50%;
-  right: 10px;
-  width: 6px;
-  height: 6px;
-  border-right: 1.5px solid var(--text-secondary);
-  border-bottom: 1.5px solid var(--text-secondary);
-  transform: translateY(-70%) rotate(45deg);
+  right: 9px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+  transition: transform 0.2s ease, color 0.2s ease;
   pointer-events: none;
 }
 
-.mp-picker select option,
-.mp-picker select optgroup {
+.mp-select-trigger.is-open .mp-select-caret {
+  color: var(--accent);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* 品牌图标：单色矢量 + currentColor —— 深浅主题、悬停反相、选中态反白全自动 */
+.mp-brand {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: inherit;
+}
+
+.mp-brand svg {
+  display: block;
+}
+
+/* ---------- 平台弹层（portal 到 body · fixed 定位） ----------
+   z-index 必须高于播放器（.music-player 9999），但要低于自定义光标（2147483647），
+   否则光标会被弹层盖住。开启 overscroll-behavior 防止滚到底把页面一起带动。 */
+.mp-menu {
+  position: fixed;
+  z-index: 2147483000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  background: linear-gradient(160deg, var(--surface-glass-strong), var(--surface-glass-strong));
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  scrollbar-width: thin;
+  animation: mp-menu-in 0.16s ease-out;
+}
+
+.mp-menu--down {
+  transform-origin: left top;
+}
+
+.mp-menu--up {
+  transform-origin: left bottom;
+}
+
+@keyframes mp-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.mp-menu-group + .mp-menu-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.mp-menu-group-title {
+  margin: 4px 7px 2px;
+  font-size: 0.62em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.mp-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 5px 7px;
   color: var(--text-primary);
-  background: var(--bg-primary);
+  font-size: 0.78em;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.mp-menu-item:hover,
+.mp-menu-item:focus-visible {
+  outline: none;
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+/* 当前频道：实心强调色反白（黑白皮肤下就是「黑底白字 / 白底黑字」） */
+.mp-menu-item.is-active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.mp-menu-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-menu-tag {
+  flex: 0 0 auto;
+  font-size: 0.82em;
+  opacity: 0.66;
+}
+
+.mp-menu-check {
+  flex: 0 0 auto;
 }
 
 /* ---------- 播放区与加载 / 错误遮罩 ---------- */
