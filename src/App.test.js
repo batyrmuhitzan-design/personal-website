@@ -29,11 +29,17 @@ describe("App", () => {
     render(<App />);
 
     // Hero 区域
-    // 注意限定选择器：技能展示区里也有三条「i'm a」，/I'M/i 全局匹配会命中多个元素
-    expect(screen.getByText(/Hi There/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/I'M/i, { selector: "h1.heading-name" })
-    ).toHaveTextContent("SHASHA");
+    // 注意：Hero 标题现在由 SplitText 逐字 / 逐词拆分（h1 的直接子节点全是 span），
+    // getByText 只看「直接文本子节点」，所以这里改用选择器 + toHaveTextContent。
+    const helloHeading = document.querySelector("h1.heading");
+    expect(helloHeading).not.toBeNull();
+    expect(helloHeading).toHaveTextContent("Hi There!");
+
+    const nameHeading = document.querySelector("h1.heading-name");
+    expect(nameHeading).toHaveTextContent("SHASHA");
+    // 可访问名是整句（逐字 span 都 aria-hidden），读屏不会一个字一个字念。
+    // 注意 SplitText 会把 split-text 类挂在根元素上，所以这里直接断言 h1 自己。
+    expect(nameHeading).toHaveAttribute("aria-label", "I'M 莎莎 SHASHA");
 
     // 顶部导航（极简 Header：英文主标识 + 中文副标识）
     expect(screen.getAllByText("作品").length).toBeGreaterThan(0);

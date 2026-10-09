@@ -9,15 +9,24 @@ import profile from "../../portfolio.config";
 function Home2() {
   return (
     <Container fluid className="home-about-section" id="about">
-      <Container>
+      {/* 装饰：背景网格随滚动反向漂移（speed 为负 = 向下沉，读起来像「内容浮在网格上」）。
+          纯装饰层：aria-hidden + pointer-events: none，且永远在正文之下（见 style.css） */}
+      <div className="about-grid" aria-hidden="true">
+        <Parallax speed={-22}>
+          <span className="about-grid-lines" />
+        </Parallax>
+      </div>
+      <Container className="about-inner">
         <Row>
           <Col md={8} className="home-about-description">
-            {/* 文案整块作为一个入场单元：标题 + 长段落一起淡入上浮。
-                长文案拆成多个单元会更「花」，但读起来反而更躁 */}
+            {/* 文案分两级入场：标题先到，长段落晚 0.12s 跟上。
+                长文案拆成更多单元会更「花」，读起来反而更躁 */}
             <Reveal direction="up">
               <h1 style={{ fontSize: "2.6em" }}>
                 简单<span className="purple">介绍</span>一下
               </h1>
+            </Reveal>
+            <Reveal direction="up" delay={0.12}>
               <p className="home-about-body zh-text">
               我是 <b className="purple">{profile.name}（{profile.nameEn}）</b>
               ，一名专注 <b className="purple">{profile.role}</b> 的开发者。
@@ -49,10 +58,21 @@ function Home2() {
           </Col>
 
           <Col md={4} className="myAvtar">
-            {/* 头像：视差 + 入场缩放；Tilt 保留（鼠标悬停时的 3D 倾斜） */}
+            {/* 头像：视差 + 入场缩放；Tilt 悬停时的 3D 倾斜 + 一层玻璃反光（glare） */}
             <Parallax className="parallax-fill" speed={-18}>
               <Reveal direction="zoom" delay={0.12}>
-                <Tilt>
+                <Tilt
+                  className="avatar-tilt"
+                  tiltMaxAngleX={10}
+                  tiltMaxAngleY={10}
+                  perspective={880}
+                  transitionSpeed={1500}
+                  scale={1.02}
+                  glareEnable
+                  glareMaxOpacity={0.22}
+                  glareColor="#ffffff"
+                  glareBorderRadius="50%"
+                >
                   <img src={avatar} className="img-fluid" alt="莎莎 Shasha 头像" />
                 </Tilt>
               </Reveal>
