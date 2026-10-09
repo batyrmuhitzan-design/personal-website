@@ -11,6 +11,10 @@
 # production
 /build
 
+# 预构建产物：服务器内存太小跑不动 CRA 构建，改由本机编译后推上来
+# （Dockerfile.prebuilt 用它打 nginx 镜像；不入库，git reset --hard 也不会删）
+/prebuilt
+
 # misc
 .DS_Store
 .env

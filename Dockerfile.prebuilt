@@ -1,0 +1,37 @@
+# ==========================================================================
+#  莎莎 · 个人主页 —— 「预构建产物」镜像（给内存不足的服务器用）
+#
+#  背景：这台 837MB 内存 + 2GB swap 的服务器跑不动 CRA + TypeScript 的生产构建，
+#        卡在 "Creating an optimized production build..." 之后被内核 OOM 杀掉
+#        （日志时间停在 92s，image 一直没有新版本）。所以把编译搬到开发机，
+#        服务器只做「nginx + 静态文件」这一层打包，几秒完成、几乎不吃内存。
+#
+#  用法（在项目根目录执行）：
+#    1) 本机编译并把产物放进 prebuilt/
+#         npm run build && rm -rf prebuilt && cp -r build prebuilt
+#       或直接跑：bash scripts/deploy-prebuilt.sh（本机编译 + 推送 + 服务器打包）
+#    2) 服务器上打包并切换容器
+#         docker build -f Dockerfile.prebuilt -t personal-website:latest .
+#         docker compose up -d --force-recreate personal-website
+#
+#  注意：prebuilt/ 必须存在且含 index.html，否则镜像里的站点会是空的。
+#        prebuilt/ 已被 .gitignore 忽略，git reset --hard 不会动它。
+# ==========================================================================
+
+FROM nginx:alpine
+
+ENV LANG=C.UTF-8
+ENV TZ=Asia/Shanghai
+
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+RUN rm -rf /usr/share/nginx/html/*
+COPY prebuilt /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget -q --spider http://127.0.0.1/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
