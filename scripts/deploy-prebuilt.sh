@@ -38,7 +38,7 @@ NO_PUSH=0
 DO_ROLLBACK=0
 
 usage() {
-  sed -n '2,30p' "$SCRIPT_PATH" 2>/dev/null | sed 's/^# \{0,1\}//'
+  sed -n '2,27p' "$SCRIPT_PATH" 2>/dev/null | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -71,6 +71,7 @@ LOCAL_PORT="${AGENT_LOCAL_PORT:-8881}"
 PUBLIC_URL="${SITE_PUBLIC_URL:-}"
 WEB_CONTAINER="${AGENT_COMPOSE_PROJECT:-personal-website}"
 WEB_IMAGE="personal-website:latest"
+WEB_PREVIOUS="personal-website:previous"   # 上一个可用镜像，失败时回滚到这里
 
 if [ -t 1 ]; then
   C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERR=$'\033[31m'; C_HEAD=$'\033[36m'; C_RESET=$'\033[0m'
@@ -84,15 +85,15 @@ die()  { printf '%s  ✗ %s%s\n' "$C_ERR" "$*" "$C_RESET" >&2; exit 1; }
 
 # ------------------------------ 回滚 ------------------------------
 rollback_remote() {
-  ssh "$SSH_HOST" "cd $REMOTE_DIR && docker image inspect ${WEB_IMAGE}:previous >/dev/null 2>&1 && docker tag ${WEB_IMAGE}:previous ${WEB_IMAGE} && docker compose up -d --force-recreate ${WEB_CONTAINER}" || true
+  ssh "$SSH_HOST" "cd $REMOTE_DIR && docker image inspect $WEB_PREVIOUS >/dev/null 2>&1 && docker tag $WEB_PREVIOUS $WEB_IMAGE && docker compose up -d --force-recreate $WEB_CONTAINER" || true
 }
 
 if [ "$DO_ROLLBACK" = "1" ]; then
-  step "回滚：${WEB_IMAGE}:previous → ${WEB_IMAGE}"
-  ssh "$SSH_HOST" "cd $REMOTE_DIR && docker image inspect ${WEB_IMAGE}:previous >/dev/null 2>&1 || { echo '服务器上没有 :previous 备份'; exit 1; }" \
+  step "回滚：$WEB_PREVIOUS → $WEB_IMAGE"
+  ssh "$SSH_HOST" "cd $REMOTE_DIR && docker image inspect $WEB_PREVIOUS >/dev/null 2>&1 || { echo '服务器上没有 :previous 备份'; exit 1; }" \
     || die "无法回滚（没有 :previous 备份）"
   rollback_remote
-  ok "已把 :previous 换回 :latest 并重建容器"
+  ok "已把 $WEB_PREVIOUS 换回 $WEB_IMAGE 并重建容器"
   ok "本机入口：http://127.0.0.1:${LOCAL_PORT}"
   exit 0
 fi
@@ -111,11 +112,14 @@ else
 fi
 
 # 产物自检：确认这次「白屏 / 黑胶不转 / 卡通风光标」三个修复真的在包里
-CSS_FILE="$(ls "$REPO_ROOT"/build/static/css/main.*.css 2>/dev/null | head -1)"
-JS_FILE="$(ls "$REPO_ROOT"/build/static/js/main.*.js 2>/dev/null | head -1)"
+# （用 find -print -quit 取第一个匹配，避免 ls | head 触发 SIGPIPE 让 pipefail 误判失败）
+CSS_FILE="$(find "$REPO_ROOT/build/static/css" -name 'main.*.css' -print -quit 2>/dev/null || true)"
+JS_FILE="$(find "$REPO_ROOT/build/static/js" -name 'main.*.js' -print -quit 2>/dev/null || true)"
 [ -n "$CSS_FILE" ] && [ -n "$JS_FILE" ] || die "产物里找不到 main.*.css / main.*.js"
 grep -q 'motion-play-state' "$CSS_FILE" || die "产物缺少 --motion-play-state（动效开关），先别上线"
-grep -q 'cur-figure'        "$CSS_FILE" || die "产物缺少 .cur-figure（卡通风光标），先别上线"
+grep -q 'mp-vinyl-spin'     "$CSS_FILE" || die "产物缺少黑胶旋转动画 mp-vinyl-spin，先别上线"
+# 卡通光标（.cur-*）的样式是组件运行时注入的，所以只能到 JS 包里找
+grep -q 'cur-figure'        "$JS_FILE"  || die "产物缺少卡通风光标 cur-figure，先别上线"
 grep -q 'cur-eye'           "$JS_FILE"  || die "产物缺少光标眼珠标记 cur-eye，先别上线"
 ok "产物自检通过：$(basename "$JS_FILE") + $(basename "$CSS_FILE")"
 
@@ -138,7 +142,7 @@ tar -czf "$TARBALL" -C "$REPO_ROOT" prebuilt || die "打包 prebuilt/ 失败"
 REMOTE_TARBALL="/tmp/pw-prebuilt-$$.tar.gz"
 scp -q "$TARBALL" "$SSH_HOST:$REMOTE_TARBALL" \
   || die "scp 失败：SSH 免密是否正常？先试 ssh $SSH_HOST true"
-ok "已上传 $(du -h "$TARBALL" 2>/dev/null | awk '{print $1}') → $SSH_HOST:$REMOTE_TARBALL"
+ok "已上传 $(( $(wc -c < "$TARBALL") / 1024 )) KB → $SSH_HOST:$REMOTE_TARBALL"
 rm -f "$TARBALL"
 
 # ------------------------------ 4/4 服务器打包并切换 ------------------------------
@@ -151,8 +155,8 @@ git reset --hard origin/$BRANCH
 git --no-pager log --oneline -1 | sed 's/^/      版本：/'
 
 if docker image inspect $WEB_IMAGE >/dev/null 2>&1; then
-  docker tag $WEB_IMAGE ${WEB_IMAGE}:previous
-  echo "      已把现镜像备份为 ${WEB_IMAGE}:previous"
+  docker tag $WEB_IMAGE $WEB_PREVIOUS
+  echo "      已把现镜像备份为 $WEB_PREVIOUS"
 fi
 
 rm -rf prebuilt
@@ -180,7 +184,7 @@ REMOTE_EOF
 )
 
 if ! ssh "$SSH_HOST" "$REMOTE_CMD"; then
-  warn "服务器侧部署失败，正在回滚到 ${WEB_IMAGE}:previous"
+  warn "服务器侧部署失败，正在回滚到 $WEB_PREVIOUS"
   rollback_remote
   die "本次部署失败（已尝试回滚，详情见上方输出）"
 fi
