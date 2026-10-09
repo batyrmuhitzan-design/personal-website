@@ -46,11 +46,24 @@ const skills = [
   { label: "其他", value: "C++（性能相关开发）、爬虫与自动化测试" },
 ];
 
-function ResumeNew() {
+/**
+ * 经历 / 简历区块。
+ * ------------------------------------------------------------------
+ * embedded = true：作为首页里的一个区块使用（挂 id="resume"，导航「经历」滚到这里），
+ * 此时不渲染粒子背景 —— 首页首屏已经有一份 tsparticles，多挂一份会明显掉帧。
+ * 默认（/resume 整页）保持原样：自带粒子背景，作为深链入口。
+ */
+function ResumeNew({ embedded = false, ready = true }) {
   return (
     <div>
-      <Container fluid className="resume-section">
-        <Particle />
+      <Container
+        fluid
+        className={
+          embedded ? "resume-section resume-section--embedded" : "resume-section"
+        }
+        id={embedded ? "resume" : undefined}
+      >
+        {embedded ? null : <Particle />}
         <Container>
           <Row style={{ justifyContent: "center", position: "relative" }}>
             <Button
@@ -67,7 +80,7 @@ function ResumeNew() {
 
           <Row className="resume" style={{ justifyContent: "center" }}>
             <Col md={10} className="resume-left">
-              <Reveal direction="up">
+              <Reveal direction="up" start={ready}>
                 <h1 className="project-heading" style={{ textAlign: "left" }}>
                   个人<strong className="purple">简介</strong>
                 </h1>

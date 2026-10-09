@@ -9,7 +9,7 @@ import Tilt from "react-parallax-tilt";
 import Reveal from "../Reveal";
 import Parallax from "../Parallax";
 
-function About() {
+function About({ ready = true }) {
   return (
     <Container fluid className="about-section">
       <Particle />
@@ -23,13 +23,14 @@ function About() {
               paddingBottom: "50px",
             }}
           >
-            <Reveal direction="up">
+            {/* ready=false 时先按住：首屏遮罩还在场时播入场 = 白播（见 App.js 的说明） */}
+            <Reveal direction="up" start={ready}>
               <h1 style={{ fontSize: "2.1em", paddingBottom: "20px" }}>
                 认识<span className="purple">莎莎</span>
               </h1>
             </Reveal>
             {/* 简介卡稍后 0.1s 入场，形成「标题 → 正文」的阅读顺序 */}
-            <Reveal direction="up" delay={0.1}>
+            <Reveal direction="up" delay={0.1} start={ready}>
               <AboutCard />
             </Reveal>
           </Col>
@@ -40,7 +41,7 @@ function About() {
           >
             {/* 插图：视差 + 入场缩放；Tilt 保留（鼠标悬停时的 3D 倾斜） */}
             <Parallax className="parallax-fill" speed={-16}>
-              <Reveal direction="zoom" delay={0.12}>
+              <Reveal direction="zoom" delay={0.12} start={ready}>
                 <Tilt>
                   <img
                     src={automationImg}

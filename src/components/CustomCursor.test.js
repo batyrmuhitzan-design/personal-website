@@ -16,7 +16,8 @@ import { PIXEL_CHARACTERS } from "../lib/pixelArt";
  *   3) 鼠标移动时箭头与小人**同帧**跟到坐标上（位置零弹簧）；
  *   4) 悬停 / 文本区：cur--over / cur--text 状态类正确；
  *   5) 角色选择：默认随机、characterId 固定、randomSkin=false 回落默认；
- *   6) 卸载后标记类与注入的样式都被清理干净。
+ *   6) 卸载后标记类与注入的样式都被清理干净；
+ *   7) 两层光标不吃点击（行内 none + 注入样式 !important 兜底）。
  */
 
 const ACTIVE_CLASS = "has-custom-cursor";
@@ -320,6 +321,60 @@ describe("CustomCursor · 像素箭头与小人的跟手", () => {
     expect(PIXEL_CHARACTERS.map((item) => item.id)).toContain(id);
 
     unmount();
+    restore();
+  });
+});
+
+/**
+ * 「光标不许吃点击」—— 最贵的一条坑：
+ * 两层光标是页面里 z-index 最高的元素，而且永远贴在鼠标底下。
+ * 一旦它们参与命中测试，鼠标所指之处就全是「透明玻璃」：
+ * 导航、按钮、页脚社交图标统统点不动（观感上就是「点了没反应」）。
+ * 这里钉死三件事：
+ *   1) 两个 portal 容器的**行内**样式是 pointer-events: none；
+ *   2) 注入的样式里再用 !important 钉一遍 —— 防止后来居上的样式盖掉行内值；
+ *   3) 光标在场时，它底下的按钮照样能点。
+ */
+describe("CustomCursor · 不许吃点击", () => {
+  test("两层容器都不参与命中测试：行内 none + 注入样式 !important 兜底", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor />);
+    await nextFrame();
+
+    const layers = Array.from(
+      document.body.querySelectorAll('div[aria-hidden="true"]')
+    );
+    expect(layers).toHaveLength(2);
+
+    layers.forEach((layer) => {
+      expect(layer.style.pointerEvents).toBe("none");
+      // 必须压在内容之上（否则会被页面遮住），所以「不吃点击」只能靠 pointer-events
+      expect(layer.style.zIndex).toBe("2147483647");
+    });
+
+    const css = document.querySelector("style[data-custom-cursor]").textContent;
+    expect(css).toMatch(
+      /\.cur-figure-wrap,\s*\.cur-arrow\s*\{\s*pointer-events:\s*none\s*!important;/
+    );
+
+    restore();
+  });
+
+  test("光标在场时，鼠标底下的按钮 / 社交链接照样能点", async () => {
+    const restore = mockPointerDevice(true);
+    render(<CustomCursor />);
+    await nextFrame();
+
+    const onClick = jest.fn();
+    render(
+      <a href="https://github.com" onClick={onClick}>
+        页脚社交图标
+      </a>
+    );
+
+    fireEvent.click(screen.getByText("页脚社交图标"));
+    expect(onClick).toHaveBeenCalledTimes(1);
+
     restore();
   });
 });

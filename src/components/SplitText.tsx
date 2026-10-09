@@ -1,7 +1,7 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { motion, type Variants } from "framer-motion";
 import { cn } from "../lib/utils";
-import { useMotionPlaying } from "../lib/useMotionPlayState";
+import { useRevealInView } from "./Reveal";
 
 /**
  * 逐字 / 逐词入场 + 黑白高亮扫过（SplitText）
@@ -18,9 +18,12 @@ import { useMotionPlaying } from "../lib/useMotionPlayState";
  *      黑底白字扫过变黑，所以无论深浅主题都正好是「黑白一闪」，
  *      不需要为主题各写一套颜色。
  *
- * 三条约定（与 Reveal / Parallax 保持一致）：
- *   · 装饰性动效总开关 --motion-play-state 为 paused 时不挂任何 motion 动画，
- *     直接以纯文本渲染 —— 关动效 ≠ 丢内容，也没有一行字停在半透明状态；
+ * 四条约定（与 Reveal / Parallax 保持一致）：
+ *   · 不做「动效总开关」：标题不进场就是坏了。需要静音走 index.css 的 CSS 分支；
+ *   · inView（进视口才播）与 Reveal 共用同一套判定（useRevealInView），
+ *     量不到布局的环境直接显示 —— 逐字单元永远不会永久停在 opacity: 0；
+ *   · start=false 先按住（首屏等加载遮罩退场），翻 true 才放开 —— 遮罩还没散
+ *     就播入场，等于白播；
  *   · 无障碍：可访问名用容器的 aria-label 给出（整句），逐字 span 一律 aria-hidden，
  *     否则屏幕阅读器会把一个词拆成一个个字念；
  *   · 逐字模式用 inline-block（transform 需要块级盒），空格换成 \u00A0 防止塌陷；
@@ -65,6 +68,11 @@ export type SplitTextProps = {
   as?: SplitTextTag;
   /** true = 进入视口才播（首屏之外的标题用），false = 挂载即播 */
   inView?: boolean;
+  /**
+   * 是否允许入场（默认 true）。false 时先按住不动，
+   * 首屏用它等加载遮罩退场：<SplitText start={!loading} … />
+   */
+  start?: boolean;
 };
 
 /** expo-out：起步快、收尾轻 —— 与 Reveal 同一条曲线，整站手感一致 */
@@ -118,9 +126,15 @@ function SplitText({
   sweepDuration = 1.1,
   as = "h1",
   inView = false,
+  start = true,
 }: SplitTextProps) {
-  const playing = useMotionPlaying();
   const units = useMemo(() => splitUnits(text, by, highlight), [text, by, highlight]);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  /* 进视口判定与 Reveal 共用（含「量不到布局就直接显示」的兜底） */
+  const visibleInView = useRevealInView(ref, { once: true, amount: 0.4, start });
+  /* inView 用视口判定，否则只认 start（挂载即播） */
+  const shown = inView ? visibleInView : start;
 
   const container: Variants = useMemo(
     () => ({
@@ -143,16 +157,7 @@ function SplitText({
     [distance, duration]
   );
 
-  /* 关动效：整句一次性渲染（不拆字），没有会卡住的中间态 */
-  if (!playing) {
-    return React.createElement(
-      as,
-      { className: cn("split-text", className), "data-split": "paused" },
-      text
-    );
-  }
-
-  const Component = MOTION_TAGS[as];
+  const Component = MOTION_TAGS[as] as typeof motion.div;
   const animated = { variants: unit };
 
   /* 扫过要等最后一个字进场之后才开始：延迟 = 整体延迟 + 全部单元的 stagger + 单个时长 */
@@ -160,14 +165,14 @@ function SplitText({
 
   return (
     <Component
+      ref={ref}
       className={cn("split-text", className)}
       variants={container}
       initial="hidden"
-      {...(inView
-        ? { whileInView: "visible", viewport: { once: true, amount: 0.4 } }
-        : { animate: "visible" })}
+      animate={shown ? "visible" : "hidden"}
       aria-label={text}
       data-split={inView ? "in-view" : "on-mount"}
+      data-split-state={shown ? "visible" : "waiting"}
       style={
         sweep
           ? ({ "--split-sweep-delay": `${sweepDelay.toFixed(2)}s` } as React.CSSProperties)
@@ -190,7 +195,7 @@ function SplitText({
           </motion.span>
         )
       )}
-      {sweep ? <span className="split-text__sheen" aria-hidden="true" /> : null}
+      {sweep && shown ? <span className="split-text__sheen" aria-hidden="true" /> : null}
     </Component>
   );
 }

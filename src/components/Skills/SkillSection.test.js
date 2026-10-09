@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import SkillSection from "./SkillSection";
 
 /**
@@ -9,8 +9,9 @@ import SkillSection from "./SkillSection";
  * 视口尺寸，这里只覆盖确定性的部分，避免测试随机失败：
  *   1) 三个技能块完整渲染：编号 +「i'm a」+ 角色 + 中文补充；
  *   2) 背景巨型文字是「装饰层」：aria-hidden、不拦鼠标，并按份数重复排满轨道；
- *   3) 站内动效总开关 --motion-play-state = paused 时，区块标记为 paused
- *      且不再写横向位移 —— 关动效不等于丢内容，条目依然可见。
+ *   3) 装饰层的横向位移挂在滚动进度上，而且**不再读站内动效开关** ——
+ *      以前一个 paused 变量就能让这里只剩静止文字（正是「滚到技能区毫无动静」
+ *      的根因），所以这条断言写成了反向回归：把变量读成 paused 也不许降级。
  */
 
 /** 与组件里的 MARQUEE_COPIES / MARQUEE_ROWS 对齐 */
@@ -88,29 +89,32 @@ describe("SkillSection", () => {
     );
   });
 
-  test("总开关为 running（默认）：区块标记 playing，装饰层由滚动驱动位移", () => {
+  test("区块标记 playing，装饰层由滚动进度驱动横向位移（只写 transform）", () => {
     const { container } = render(<SkillSection />);
 
     expect(container.querySelector("section")).toHaveAttribute(
       "data-motion",
       "playing"
     );
+
+    // 第三行从「半份处」起步（-6.25%）：位移确实挂上了，不是静态平铺
+    const third = container.querySelector('[data-skill-marquee-row="solid-xl"]');
+    expect(third.style.transform).toContain("translate");
+    expect(third.style.transform).toContain("-6.25%");
   });
 
-  test("总开关为 paused：标记 paused、不写横向位移，且内容仍然可见", async () => {
+  test("把 --motion-play-state 读成 paused 也不降级（站内动效开关已彻底移除）", () => {
     const restore = mockMotionPlayState("paused");
     const { container } = render(<SkillSection />);
 
     const section = container.querySelector("section");
-    await waitFor(() =>
-      expect(section).toHaveAttribute("data-motion", "paused")
-    );
-    // 关掉动效时不再往装饰层写横向位移（framer-motion 此时只落一个 transform: none）
-    container.querySelectorAll("[data-skill-marquee-row]").forEach((row) => {
-      expect(row.style.transform).not.toMatch(/translate/i);
-    });
+    expect(section).toHaveAttribute("data-motion", "playing");
 
-    // 关键：不因为有动效开关就把信息藏起来
+    // 位移照旧：不再有任何 JS 分支去读那个变量
+    const third = container.querySelector('[data-skill-marquee-row="solid-xl"]');
+    expect(third.style.transform).toContain("-6.25%");
+
+    // 关键：内容从来不会因为一个开关被藏起来
     expect(screen.getByText("UX Designer")).toBeInTheDocument();
     expect(screen.getByText("爱做一些不拘一格的界面")).toBeInTheDocument();
 

@@ -21,7 +21,9 @@ import {
   AiOutlineReload,
   AiOutlineUp,
 } from "react-icons/ai";
+import { AnimatePresence, motion } from "framer-motion";
 import MusicBrandIcon from "./MusicBrandIcon";
+import { playSfx } from "../lib/sound";
 import profile from "../portfolio.config";
 
 /**
@@ -632,14 +634,21 @@ function MusicPlayer() {
     });
   }, []);
 
+  /**
+   * 收起弹层。
+   * ⚠️ 刻意**不**清掉 menuBox：退场动画是在原位播的（AnimatePresence 会先留着
+   * 那个节点），位置一旦被清成 null，弹层就会「跳」到屏幕左上角再消失。
+   * 下次打开时 placeMenu() 会按当时的按钮矩形重算，所以留着没有任何副作用。
+   */
   const closePicker = useCallback(() => {
     setPickerOpen(false);
-    setMenuBox(null);
+    playSfx("close");
   }, []);
 
   const openPicker = useCallback(() => {
     placeMenu();
     setPickerOpen(true);
+    playSfx("open");
   }, [placeMenu]);
 
   const togglePicker = useCallback(() => {
@@ -831,167 +840,172 @@ function MusicPlayer() {
         {/* data-lenis-prevent：滚轮落在这一块时别被全站 Lenis 接管，
             否则歌单内部的滚动会被页面滚动抢走（Lenis 会沿 composedPath 向上查找该属性） */}
         <div className="mp-body" data-lenis-prevent>
-          {/* 平台 / 榜单：自绘下拉。触发按钮留在正常文档流里（不挤压下面的唱机与控制条，
-              弹层是 fixed 浮层）；容器 z-index:5 仍然有效，用于兜住不支持 portal 的场景。 */}
-          <div className="mp-picker">
-            <span className="mp-picker-label">平台 / 榜单</span>
-            <button
-              type="button"
-              ref={pickerRef}
-              className={`mp-select-trigger${pickerOpen ? " is-open" : ""}`}
-              onClick={togglePicker}
-              onKeyDown={handleTriggerKeyDown}
-              disabled={loading}
-              aria-label="选择音乐平台与榜单"
-              aria-haspopup="listbox"
-              aria-expanded={pickerOpen}
-              aria-controls={pickerOpen ? MENU_ID : undefined}
-            >
-              <MusicBrandIcon platform={current} />
-              <span className="mp-select-text">
-                <strong className="mp-select-name">{current ? current.name : "—"}</strong>
-                <em className="mp-select-group">{current ? current.group : ""}</em>
-              </span>
-              <AiOutlineDown className="mp-select-caret" aria-hidden="true" />
-            </button>
-          </div>
-
-          <div className="mp-stage">
-            {/* 静止高光层（玻璃反光 / 标签外圈 / 中心轴孔）：压在唱片上方，
-                用来体现出「唱片本体确实在转」，而不是整体一起转。 */}
-            <div className="mp-vinyl-sheen" aria-hidden="true" />
-            {/* 拟物唱针：与唱片共用 CSS 变量定位，播放时压下、暂停时平滑抬起 */}
-            <div className="mp-stylus" aria-hidden="true">
-              <span className="mp-stylus-pivot" />
-              <span className="mp-stylus-arm">
-                <span className="mp-stylus-head" />
-              </span>
+          {/* 折叠 / 展开的过渡层：grid-template-rows 1fr ↔ 0fr（见 style.css 里
+              .mp-body / .mp-body-inner 的长注释）。多这一层是因为 grid 行高过渡
+              需要一个「唯一的内容子元素」，而 .mp-body 直接挂着唱机 + 控制条 + 歌单。 */}
+          <div className="mp-body-inner">
+            {/* 平台 / 榜单：自绘下拉。触发按钮留在正常文档流里（不挤压下面的唱机与控制条，
+                弹层是 fixed 浮层）；容器 z-index:5 仍然有效，用于兜住不支持 portal 的场景。 */}
+            <div className="mp-picker">
+              <span className="mp-picker-label">平台 / 榜单</span>
+              <button
+                type="button"
+                ref={pickerRef}
+                className={`mp-select-trigger${pickerOpen ? " is-open" : ""}`}
+                onClick={togglePicker}
+                onKeyDown={handleTriggerKeyDown}
+                disabled={loading}
+                aria-label="选择音乐平台与榜单"
+                aria-haspopup="listbox"
+                aria-expanded={pickerOpen}
+                aria-controls={pickerOpen ? MENU_ID : undefined}
+              >
+                <MusicBrandIcon platform={current} />
+                <span className="mp-select-text">
+                  <strong className="mp-select-name">{current ? current.name : "—"}</strong>
+                  <em className="mp-select-group">{current ? current.group : ""}</em>
+                </span>
+                <AiOutlineDown className="mp-select-caret" aria-hidden="true" />
+              </button>
             </div>
-            <div className="mp-aplayer" ref={containerRef} />
-            {loading ? (
-              <div className="mp-mask">
-                <AiOutlineLoading3Quarters className="mp-spin" />
-                <span>正在解析「{current ? current.name : "榜单"}」…</span>
+
+            <div className="mp-stage">
+              {/* 静止高光层（玻璃反光 / 标签外圈 / 中心轴孔）：压在唱片上方，
+                  用来体现出「唱片本体确实在转」，而不是整体一起转。 */}
+              <div className="mp-vinyl-sheen" aria-hidden="true" />
+              {/* 拟物唱针：与唱片共用 CSS 变量定位，播放时压下、暂停时平滑抬起 */}
+              <div className="mp-stylus" aria-hidden="true">
+                <span className="mp-stylus-pivot" />
+                <span className="mp-stylus-arm">
+                  <span className="mp-stylus-head" />
+                </span>
               </div>
-            ) : null}
-            {!loading && error ? (
-              <div className="mp-mask mp-mask-error">
-                <AiOutlineExclamationCircle />
-                <span>{error}</span>
-                <button type="button" onClick={handleReload}>
-                  重试
-                </button>
-              </div>
-            ) : null}
-          </div>
-
-          {/* 自绘控制条（APlayer 原生控制条已在 style.css 里整条隐藏）：
-              进度条 → 按钮行 → 可展开的音量条。
-              按钮行严格左右对称：[循环] [上一曲] 【播放/暂停·实心主按钮】 [下一曲] [播放列表] */}
-          <div className="mp-controls" data-mp-controls>
-            <div className="mp-progress">
-              <span className="mp-time mp-time-now" data-mp-position>
-                {formatTime(position)}
-              </span>
-              <input
-                className="mp-range"
-                type="range"
-                min="0"
-                max={duration > 0 ? Math.floor(duration) : 0}
-                step="1"
-                value={duration > 0 ? Math.min(Math.floor(position), Math.floor(duration)) : 0}
-                onChange={handleSeek}
-                disabled={!(duration > 0)}
-                aria-label="播放进度"
-                title="播放进度"
-                {...seekDragHandlers}
-              />
-              <span className="mp-time" data-mp-duration>
-                {duration > 0 ? formatTime(duration) : "--:--"}
-              </span>
+              <div className="mp-aplayer" ref={containerRef} />
+              {loading ? (
+                <div className="mp-mask">
+                  <AiOutlineLoading3Quarters className="mp-spin" />
+                  <span>正在解析「{current ? current.name : "榜单"}」…</span>
+                </div>
+              ) : null}
+              {!loading && error ? (
+                <div className="mp-mask mp-mask-error">
+                  <AiOutlineExclamationCircle />
+                  <span>{error}</span>
+                  <button type="button" onClick={handleReload}>
+                    重试
+                  </button>
+                </div>
+              ) : null}
             </div>
 
-            <div className="mp-buttons">
-              <button
-                type="button"
-                className="mp-btn"
-                onClick={handleCycleLoop}
-                aria-label={`循环模式：${LOOP_LABEL[loopMode]}`}
-                aria-pressed={loopMode !== "none"}
-                title={`循环模式：${LOOP_LABEL[loopMode]}`}
-                data-loop-mode={loopMode}
-              >
-                <Repeat size={14} />
-                {loopMode === "one" ? (
-                  <span className="mp-loop-badge" aria-hidden="true">
-                    1
-                  </span>
-                ) : null}
-              </button>
-              <button
-                type="button"
-                className="mp-btn"
-                onClick={handlePrev}
-                disabled={!count}
-                aria-label="上一曲"
-                title="上一曲"
-              >
-                <SkipBack size={16} />
-              </button>
-              <button
-                type="button"
-                className="mp-btn mp-btn-main"
-                onClick={handleTogglePlay}
-                disabled={!count}
-                aria-label={playing ? "暂停" : "播放"}
-                title={playing ? "暂停" : "播放"}
-              >
-                {playing ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-              <button
-                type="button"
-                className="mp-btn"
-                onClick={handleNext}
-                disabled={!count}
-                aria-label="下一曲"
-                title="下一曲"
-              >
-                <SkipForward size={16} />
-              </button>
-              <button
-                type="button"
-                className="mp-btn"
-                onClick={handleToggleList}
-                aria-label="播放列表"
-                title="展开 / 收起播放列表"
-              >
-                <ListMusic size={14} />
-              </button>
-            </div>
-
-            {volumeOpen ? (
-              <div className="mp-volume" data-mp-volume>
-                <Volume2 size={12} aria-hidden="true" />
+            {/* 自绘控制条（APlayer 原生控制条已在 style.css 里整条隐藏）：
+                进度条 → 按钮行 → 可展开的音量条。
+                按钮行严格左右对称：[循环] [上一曲] 【播放/暂停·实心主按钮】 [下一曲] [播放列表] */}
+            <div className="mp-controls" data-mp-controls>
+              <div className="mp-progress">
+                <span className="mp-time mp-time-now" data-mp-position>
+                  {formatTime(position)}
+                </span>
                 <input
-                  className="mp-range mp-range-volume"
+                  className="mp-range"
                   type="range"
                   min="0"
-                  max="100"
+                  max={duration > 0 ? Math.floor(duration) : 0}
                   step="1"
-                  value={Math.round(volume * 100)}
-                  onChange={handleVolume}
-                  aria-label="音量大小"
-                  title="音量"
+                  value={duration > 0 ? Math.min(Math.floor(position), Math.floor(duration)) : 0}
+                  onChange={handleSeek}
+                  disabled={!(duration > 0)}
+                  aria-label="播放进度"
+                  title="播放进度"
+                  {...seekDragHandlers}
                 />
+                <span className="mp-time" data-mp-duration>
+                  {duration > 0 ? formatTime(duration) : "--:--"}
+                </span>
               </div>
-            ) : null}
-          </div>
 
-          <div className="mp-foot">
-            <span className="mp-count">{count ? `${count} 首` : "—"}</span>
-            <span className="mp-tip" title={tip}>
-              {tip}
-            </span>
+              <div className="mp-buttons">
+                <button
+                  type="button"
+                  className="mp-btn"
+                  onClick={handleCycleLoop}
+                  aria-label={`循环模式：${LOOP_LABEL[loopMode]}`}
+                  aria-pressed={loopMode !== "none"}
+                  title={`循环模式：${LOOP_LABEL[loopMode]}`}
+                  data-loop-mode={loopMode}
+                >
+                  <Repeat size={14} />
+                  {loopMode === "one" ? (
+                    <span className="mp-loop-badge" aria-hidden="true">
+                      1
+                    </span>
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  className="mp-btn"
+                  onClick={handlePrev}
+                  disabled={!count}
+                  aria-label="上一曲"
+                  title="上一曲"
+                >
+                  <SkipBack size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="mp-btn mp-btn-main"
+                  onClick={handleTogglePlay}
+                  disabled={!count}
+                  aria-label={playing ? "暂停" : "播放"}
+                  title={playing ? "暂停" : "播放"}
+                >
+                  {playing ? <Pause size={18} /> : <Play size={18} />}
+                </button>
+                <button
+                  type="button"
+                  className="mp-btn"
+                  onClick={handleNext}
+                  disabled={!count}
+                  aria-label="下一曲"
+                  title="下一曲"
+                >
+                  <SkipForward size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="mp-btn"
+                  onClick={handleToggleList}
+                  aria-label="播放列表"
+                  title="展开 / 收起播放列表"
+                >
+                  <ListMusic size={14} />
+                </button>
+              </div>
+
+              {volumeOpen ? (
+                <div className="mp-volume" data-mp-volume>
+                  <Volume2 size={12} aria-hidden="true" />
+                  <input
+                    className="mp-range mp-range-volume"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(volume * 100)}
+                    onChange={handleVolume}
+                    aria-label="音量大小"
+                    title="音量"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mp-foot">
+              <span className="mp-count">{count ? `${count} 首` : "—"}</span>
+              <span className="mp-tip" title={tip}>
+                {tip}
+              </span>
+            </div>
           </div>
         </div>
       </section>
@@ -999,9 +1013,10 @@ function MusicPlayer() {
       {/* 平台弹层：portal 到 body + position: fixed —— 面板的 backdrop-filter / overflow
           会把「面板内的弹层」裁掉甚至把 fixed 拉回面板内部，只有挂在 body 上才真的
           浮在唱机与控制条之上（z-index 见 style.css 的 .mp-menu）。 */}
-      {pickerOpen && menuBox
-        ? createPortal(
-            <div
+      {createPortal(
+        <AnimatePresence>
+          {pickerOpen && menuBox ? (
+            <motion.div
               id={MENU_ID}
               ref={menuRef}
               className={`mp-menu mp-menu--${menuBox.placement}`}
@@ -1015,6 +1030,13 @@ function MusicPlayer() {
                 maxHeight: menuBox.height,
               }}
               onKeyDown={handleMenuKeyDown}
+              /* 弹出 / 收紧都由 framer-motion 逐帧驱动（CSS 里刻意没有任何 animation：
+                 动画优先级高于行内样式，会和这里写的 transform 打架）。
+                 方向跟着弹层的展开方向走：向下弹就从上方滑下来，向上弹则相反。 */
+              initial={{ opacity: 0, scale: 0.96, y: menuBox.placement === "up" ? 6 : -6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: menuBox.placement === "up" ? 4 : -4 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             >
               {groups.map((group) => (
                 <div
@@ -1049,10 +1071,11 @@ function MusicPlayer() {
                   })}
                 </div>
               ))}
-            </div>,
-            document.body
-          )
-        : null}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

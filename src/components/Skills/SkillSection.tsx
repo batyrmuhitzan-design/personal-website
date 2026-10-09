@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import {
   motion,
   useScroll,
@@ -21,10 +21,9 @@ import { cn } from "../../lib/utils";
        每条用「overflow: hidden 遮罩 + 内部上移」浮现（whileInView，只播一次）。
 
    三条必须记住的约定：
-     1) 装饰性动效的播放 / 暂停只认站内开关 --motion-play-state（默认 running），
-        刻意不跟 prefers-reduced-motion：站长这台机器的系统「动画效果」是关闭的
-        （Chrome 会一直上报 reduce），跟随系统 = 这一块永远静止。详见 src/index.css。
-        开关为 paused 时：不再写横向位移，前景条目直接以最终状态出现（不隐藏内容）。
+     1) 不在站内做「动效总开关」：横向掠过与遮罩浮现正是这一块的看点，
+        一旦被一个 paused 变量拦住，滚到这里就只剩静止的文字 —— 那才是真的坏了。
+        需要照顾「减少动态效果」时改 src/index.css 的 CSS 分支，而不是让 JS 把内容藏住。
      2) 颜色全部走设计令牌（var(--text-primary) + opacity 得到灰度），
         深浅两套主题下都自动是「恰好的灰」，不写死任何色值。
      3) 背景文字是纯装饰：aria-hidden + pointer-events-none + select-none，
@@ -104,35 +103,6 @@ const ITEM_VARIANTS: Variants = {
 /** 遮罩容器：底部留 0.06em 余量，避免斜体与降部（p / y）被切掉 */
 const MASK_CLASS = "block overflow-hidden pb-[0.06em]";
 
-/* --------------------------------------------------------------------------
-   站内动效总开关
-   -------------------------------------------------------------------------- */
-
-/**
- * 读 --motion-play-state（定义在 src/index.css 的 :root，默认 running）。
- * 拿不到时（jsdom / 老浏览器）按默认值处理，与 CSS 初始值保持一致。
- * 注意：这里读的是「站内开关」而不是系统的 prefers-reduced-motion —— 原因见文件头。
- */
-function useMotionPlayState(): "running" | "paused" {
-  const [playState, setPlayState] = useState<"running" | "paused">("running");
-
-  useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      typeof window.getComputedStyle !== "function"
-    ) {
-      return;
-    }
-    const raw = window
-      .getComputedStyle(document.documentElement)
-      .getPropertyValue("--motion-play-state")
-      .trim();
-    if (raw === "paused") setPlayState("paused");
-  }, []);
-
-  return playState;
-}
-
 type SkillSectionProps = {
   /** 锚点 id：从别处可以直接 #skill 跳过来 */
   id?: string;
@@ -146,7 +116,6 @@ type SkillSectionProps = {
 
 function SkillSection({ id = "skill", className }: SkillSectionProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
-  const playing = useMotionPlayState() === "running";
 
   /* 滚动进度：0 = 区块顶边刚碰到视口底边；1 = 区块底边离开视口顶边。
      target 交给 section 自身，因此进度只跟「这一块」有关，与页面长短无关。 */
@@ -176,7 +145,7 @@ function SkillSection({ id = "skill", className }: SkillSectionProps) {
     <section
       id={id}
       ref={sectionRef}
-      data-motion={playing ? "playing" : "paused"}
+      data-motion="playing"
       className={cn(
         "skill-section relative isolate w-full overflow-hidden",
         "py-[13vh] md:py-[16vh]",
@@ -200,8 +169,8 @@ function SkillSection({ id = "skill", className }: SkillSectionProps) {
               fontSize: row.fontSize,
               fontWeight: row.weight,
               opacity: row.opacity,
-              /* 总开关为 paused 时不挂 x —— 装饰层停住、也不留下中间态的位移 */
-              ...(playing ? { x: rowX[index] } : {}),
+              /* 由滚动进度驱动横向掠过（三行各走各的） */
+              x: rowX[index],
             }}
           >
             {MARQUEE_TRACK.map((word, wordIndex) => (
@@ -254,9 +223,9 @@ function SkillSection({ id = "skill", className }: SkillSectionProps) {
               data-skill-item={skill.no}
               className="group border-t border-hairline last:border-b"
               variants={ITEM_VARIANTS}
-              /* 只有播放态才从遮罩里升起来；暂停态用 initial={false} 直接呈现
-                 最终状态 —— 关掉动效也绝不把内容藏在遮罩里（白屏 / 隐形事故的来源） */
-              initial={playing ? "hidden" : false}
+              /* 从遮罩里升起来：initial 给 hidden 才有「升起」这个过程；
+                 判定交给 whileInView（真浏览器里首次回调也会给「已在视口内」） */
+              initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.35 }}
             >

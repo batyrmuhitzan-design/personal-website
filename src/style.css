@@ -860,6 +860,15 @@ button:focus {
   margin-bottom: 30px;
 }
 
+/* 卡片 3D 悬停（react-parallax-tilt）用的外层容器。
+   Tilt 会把 translate/rotate/perspective 施加在这一层上，
+   所以它必须撑满列高，里面的 .contact-card 的 height:100% 才有参照；
+   .contact-card:hover 自己的 translateY(-6px) 施加在内层，
+   与这里的 3D 旋转互不覆盖，两个效果能同时看到。 */
+.contact-tilt {
+  height: 100%;
+}
+
 .contact-card {
   height: 100%;
   display: flex;
@@ -1024,6 +1033,11 @@ button:focus {
   /* 面板宽度：标题栏 / 唱机 / 控制条 / 歌单的尺寸都跟着它走。
      想再缩放播放器，只改这一个数 + 下面的 --mp-disc（按比例）即可。 */
   --mp-panel-width: 264px;
+  /* 播放器内部统一的缓动：expo-out（起步快、收尾轻），与全站动效语言一致。
+     这里以前 `ease` 与 `0.2s ease` 混着用，点起来的「手感」不齐 ——
+     统一曲线、并把时长略微拉长（0.22~0.28s），才有那种「丝滑」而不是「咔」。
+     想整体调快/调慢：改这一个变量，播放器里所有过渡一起生效。 */
+  --mp-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ---------- 隐藏后的启动按钮 ---------- */
@@ -1034,18 +1048,24 @@ button:focus {
   width: 42px;
   height: 42px;
   font-size: 20px;
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border: 1px solid var(--accent-line);
+  color: var(--mp-solid-fg);
+  background: var(--mp-solid-bg);
+  border: 1px solid var(--mp-solid-ring);
   border-radius: 50%;
   box-shadow: 0 12px 28px var(--shadow-strong);
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.28s var(--mp-ease), box-shadow 0.28s var(--mp-ease),
+    background-color 0.3s var(--mp-ease), color 0.3s var(--mp-ease),
+    border-color 0.3s var(--mp-ease);
 }
 
 .mp-launcher:hover {
   transform: translateY(-3px) scale(1.04);
   box-shadow: 0 16px 34px var(--accent-glow);
+}
+
+.mp-launcher:active {
+  transform: translateY(-1px) scale(0.96);
 }
 
 /* ---------- 面板外壳 ---------- */
@@ -1082,44 +1102,60 @@ button:focus {
   pointer-events: none;
 }
 
-/* 折叠时只收高度、保留宽度，方便 APlayer 重新测量进度条 */
+/* 折叠 / 展开：用 grid-template-rows 从 1fr 收到 0fr —— 这是「按内容真实高度」
+   做的过渡；以前过渡一个写死的 max-height，结果就是先几乎不动、最后一刻突然收完，
+   看起来就是「收紧很生硬」。
+   兼容兜底：max-height 也一起过渡，不支持 fr 过渡的旧浏览器仍然收得起来，
+   只是少了中间帧的顺滑（信息不会丢）。 */
 .mp-body {
-  /* 收回 / 展开的高度过渡：要容得下「唱机 + 展开的歌单」整套内容，
-     同时不超过视口剩余高度（面板贴底，超出的部分会被裁到屏幕外）。
-     播放器瘦身到 264px 后整套内容矮了一档，这里同步收紧，
-     免得展开歌单时面板顶到屏幕外。 */
+  display: grid;
+  grid-template-rows: 1fr;
+  /* 展开歌单后整体不超过视口剩余高度（面板贴底，超出会被裁到屏幕外） */
   max-height: min(660px, calc(100vh - 72px));
   opacity: 1;
-  /* 纵向允许滚动：展开歌单后内容可能超过视口（矮屏 / 手机），
-     以前是 overflow:hidden，超出部分会被硬裁掉，歌单底部点不到 */
+  overflow: hidden;
+  transition: grid-template-rows 0.42s var(--mp-ease), max-height 0.42s var(--mp-ease),
+    opacity 0.3s var(--mp-ease);
+}
+
+/* 真正的内容层：滚动放在这里。
+   （折叠时整层往下收一点 + 淡出，视觉上是「合上」，而不是「被切掉」） */
+.mp-body-inner {
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
-  transition: max-height 0.35s ease, opacity 0.25s ease;
+  transition: transform 0.42s var(--mp-ease), opacity 0.3s var(--mp-ease);
 }
 
-.mp-body::-webkit-scrollbar {
+.mp-body-inner::-webkit-scrollbar {
   width: 6px;
 }
 
-.mp-body::-webkit-scrollbar-thumb {
+.mp-body-inner::-webkit-scrollbar-thumb {
   background-color: var(--accent-soft);
   border-radius: 3px;
 }
 
-.mp-body::-webkit-scrollbar-thumb:hover {
+.mp-body-inner::-webkit-scrollbar-thumb:hover {
   background-color: var(--accent-soft-strong);
 }
 
-.mp-body::-webkit-scrollbar-track {
+.mp-body-inner::-webkit-scrollbar-track {
   background: transparent;
 }
 
 .mp-is-collapsed .mp-body {
+  grid-template-rows: 0fr;
   max-height: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+.mp-is-collapsed .mp-body-inner {
+  transform: translateY(-8px) scale(0.985);
+  opacity: 0;
 }
 
 /* ---------- 标题栏 ---------- */
@@ -1182,7 +1218,12 @@ button:focus {
   border: 1px solid transparent;
   border-radius: 999px;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: color 0.22s var(--mp-ease), background-color 0.22s var(--mp-ease),
+    border-color 0.22s var(--mp-ease), transform 0.18s var(--mp-ease);
+}
+
+.mp-actions button:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
 /* lucide 图标自带固定尺寸，这里只负责居中（react-icons 那批靠 font-size 撑） */
@@ -1313,7 +1354,11 @@ button:focus {
 
 /* ---------- 平台弹层（portal 到 body · fixed 定位） ----------
    z-index 必须高于播放器（.music-player 9999），但要低于自定义光标（2147483647），
-   否则光标会被弹层盖住。开启 overscroll-behavior 防止滚到底把页面一起带动。 */
+   否则光标会被弹层盖住。开启 overscroll-behavior 防止滚到底把页面一起带动。
+   进场 / 退场动画由 framer-motion 负责（见 MusicPlayer.js 的 AnimatePresence）：
+   这里**不能**再写 animation —— CSS 动画的优先级高于行内样式，会和 framer-motion
+   逐帧写的 transform 打架，结果就是「一顿一顿」的假动画（这正是之前「弹出不丝滑」
+   的原因之一）。 */
 .mp-menu {
   position: fixed;
   z-index: 2147483000;
@@ -1327,7 +1372,6 @@ button:focus {
   backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
   scrollbar-width: thin;
-  animation: mp-menu-in 0.16s ease-out;
 }
 
 .mp-menu--down {
@@ -1336,17 +1380,6 @@ button:focus {
 
 .mp-menu--up {
   transform-origin: left bottom;
-}
-
-@keyframes mp-menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 .mp-menu-group + .mp-menu-group {
@@ -1376,7 +1409,9 @@ button:focus {
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  /* 悬停 / 聚焦时整行轻轻右移一点：既是反馈，也让「正被指到的那一行」更明确 */
+  transition: background-color 0.18s var(--mp-ease), border-color 0.18s var(--mp-ease),
+    color 0.18s var(--mp-ease), transform 0.18s var(--mp-ease);
 }
 
 .mp-menu-item:hover,
@@ -1384,6 +1419,12 @@ button:focus {
   outline: none;
   background: var(--accent-soft);
   border-color: var(--accent-line);
+  transform: translateX(2px);
+}
+
+/* 按下再收一点：确认「这一下点到了」 */
+.mp-menu-item:active {
+  transform: translateX(2px) scale(0.985);
 }
 
 /* 当前频道：实心强调色反白（黑白皮肤下就是「黑底白字 / 白底黑字」） */
@@ -1434,6 +1475,19 @@ button:focus {
   border: 1px solid var(--accent-line);
   border-radius: 14px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ---------- 掐掉 APlayer 写死的白色（深色版「圆圈图标还是白的」根因） ----------
+   APlayer 自带 CSS 里有两条「所有 SVG 一律填白」：
+     .aplayer svg circle, .aplayer svg path       { fill: #fff }
+     .aplayer .aplayer-pic .aplayer-button path   { fill: #fff }
+   后果：浅色主题下唱片中心的播放键是「白图标压白玻璃」= 基本看不见；
+   深色主题下则永远白、跟主题无关 —— 就是「深色版圆圈图标还是白的」。
+   这里统一改成跟随当前主题的主文字色：图标永远与它所在的那层底保持对比。
+   （下方的 miniswitcher 规则优先级更高，仍按它自己的 --accent 走） */
+.mp-aplayer .aplayer svg circle,
+.mp-aplayer .aplayer svg path {
+  fill: var(--text-primary) !important;
 }
 
 /* 唱片本体：把 APlayer 的封面容器改造成圆形黑胶，中心 30% 露出专辑封面当作标签 */
@@ -1945,23 +1999,32 @@ button:focus {
   border: 1px solid transparent;
   border-radius: 50%;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease,
-    transform 0.15s ease;
+  /* 统一用 --mp-ease：颜色 / 背景 / 描边 0.22s，位移与缩放 0.18s（更快一点才「跟手」） */
+  transition: color 0.22s var(--mp-ease), background-color 0.22s var(--mp-ease),
+    border-color 0.22s var(--mp-ease), box-shadow 0.22s var(--mp-ease),
+    transform 0.18s var(--mp-ease);
 }
 
 /* lucide 图标是 currentColor 描边：颜色跟着按钮走 = 自动适配黑白主题 */
 .mp-btn svg {
   display: block;
+  transition: transform 0.18s var(--mp-ease);
 }
 
 .mp-btn:hover:not(:disabled) {
   color: var(--text-primary);
   background: var(--accent-soft);
   border-color: var(--accent-line);
+  transform: translateY(-1px);
 }
 
+/* 按下：整颗按钮收一点、图标再收一点 —— 这一层「双重回弹」是「丝滑」的关键手感 */
 .mp-btn:active:not(:disabled) {
-  transform: scale(0.94);
+  transform: scale(0.92);
+}
+
+.mp-btn:active:not(:disabled) svg {
+  transform: scale(0.86);
 }
 
 .mp-btn:focus-visible {
@@ -1975,21 +2038,40 @@ button:focus {
   cursor: not-allowed;
 }
 
-/* 主按钮（播放 / 暂停）：实心 accent 圆钮 —— 浅色主题 = 纯黑底白图标 */
+/* 主按钮（播放 / 暂停）：实心圆钮。
+   浅色主题 = 纯黑底白图标；深色主题 = 深底亮图标 + 细描边（见 tokens 的 --mp-solid-*），
+   两个主题下都不会变成刺眼的「白饼」，也永远不会出现「白图标压白底」。 */
 .mp-btn-main {
   width: 36px;
   height: 36px;
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
+  color: var(--mp-solid-fg);
+  background: var(--mp-solid-bg);
+  border-color: var(--mp-solid-ring);
   box-shadow: 0 6px 16px var(--accent-glow), inset 0 1px 0 var(--shadow-inset);
 }
 
 .mp-btn-main:hover:not(:disabled) {
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  color: var(--mp-solid-fg);
+  background: var(--mp-solid-bg);
+  border-color: var(--mp-solid-fg);
+  transform: translateY(-1px) scale(1.03);
+}
+
+/* 图标在 Play / Pause 之间切换时重播一个小入场：点下去「有回应」，
+   而不是图标瞬间换脸（React 换的是不同元素，动画因此会自然重播）。 */
+.mp-btn-main svg {
+  animation: mp-icon-pop 0.26s var(--mp-ease);
+}
+
+@keyframes mp-icon-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* 循环模式：one 加角标「1」，none 压暗（语义与 APlayer 内置循环键一致） */
@@ -2006,9 +2088,11 @@ button:focus {
   font-size: 8px;
   font-weight: 700;
   line-height: 12px;
-  color: var(--accent-contrast);
-  background: var(--accent);
+  color: var(--mp-solid-fg);
+  background: var(--mp-solid-bg);
   border-radius: 999px;
+  /* 切到「单曲循环」时角标是「冒」出来的，不是硬闪一下 */
+  animation: mp-icon-pop 0.28s var(--mp-ease);
 }
 
 /* 音量条：由标题栏的音量按钮展开，与进度条共用一套细线样式 */

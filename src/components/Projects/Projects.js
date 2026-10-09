@@ -12,12 +12,26 @@ import devopsToolkit from "../../Assets/Projects/devops-toolkit.svg";
 import quantLab from "../../Assets/Projects/quant-lab.svg";
 import markFlow from "../../Assets/Projects/mark-flow.svg";
 
-function Projects() {
+/**
+ * 作品区块。
+ * ------------------------------------------------------------------
+ * embedded = true：作为首页里的一个区块使用（挂 id="work"，导航「作品」滚到这里），
+ * 此时不渲染粒子背景 —— 首页首屏已经有一份 tsparticles，多挂一份会明显掉帧。
+ * 默认（/project 整页）保持原样：自带粒子背景，作为深链入口。
+ */
+function Projects({ embedded = false, ready = true }) {
   return (
-    <Container fluid className="project-section">
-      <Particle />
+    <Container
+      fluid
+      className={
+        embedded ? "project-section project-section--embedded" : "project-section"
+      }
+      id={embedded ? "work" : undefined}
+    >
+      {embedded ? null : <Particle />}
       <Container>
-        <Reveal direction="up">
+        {/* 首屏标题等 ready（加载遮罩退场）再入场；其余卡片由滚动触发，不受影响 */}
+        <Reveal direction="up" start={ready}>
           <h1 className="project-heading">
             我最近做的<strong className="purple">项目 </strong>
           </h1>

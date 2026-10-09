@@ -76,7 +76,12 @@ const profile = {
   /* ---------------- 动效体系（平滑滚动 / 入场 / 视差 / 切页） ----------------
      平滑滚动：Lenis，参数在下面 motion.lenis（场景见 src/components/SmoothScroll.tsx）
        · duration：滚轮松手后「滑行」多久，越大越沉。0.8~1.0 是「丝滑但不迟钝」的甜点区
-       · easingExponent：收尾指数，越大末段越慢越「贵」；3.6 比 4.2 更跟手
+       · easingExponent：收尾指数，曲线是 `1 - 2^(-e·t)`。⚠️ 必须 ≥ 8：
+        这是从官方示例 `1.001 - 2^(-e·t)` 抄漏出来的坑 —— 指数 3.6 时曲线在
+        t=1 只到 0.9185，末端 8% 的距离会被 Lenis 的硬钳（progress ≥ 1 时它直接
+        取 1、不看曲线）在 1~2 帧里补完，表现就是「到顶 / 到底顿一下再猛地拉满」；
+        完整推导见 src/components/SmoothScroll.tsx 里 makeEasing 的注释。
+        10 = 官方默认档：t=0.5 已走完 96.9%，末段约 0.4s 匀速收尾，跟手不毛躁
        · wheelMultiplier：滚轮速度倍率（1 = 原生一格就是它自己）
        · touchMultiplier：触屏拖动倍率，略大一点更接近手指滑动的惯性预期
        · syncTouch：true = 触屏也交给 Lenis 做插值（默认 false 是「触屏用原生滚动」）。
@@ -91,7 +96,7 @@ const profile = {
   motion: {
     lenis: {
       duration: 0.85,
-      easingExponent: 3.6,
+      easingExponent: 10,
       wheelMultiplier: 1,
       touchMultiplier: 1.6,
       syncTouch: true,
@@ -99,6 +104,61 @@ const profile = {
       touchInertiaMultiplier: 28,
       lerp: 0,
     },
+  },
+
+  /* ---------------- 3D 全屏背景（Three.js · 点阵星门） ----------------
+     见 src/components/Stage3D.js。它是一条「不抢内容」的底层：
+     · 固定定位铺满视口、pointer-events: none、aria-hidden，永远在正文之下
+       （层叠顺序的坑见 src/style.css 里 .stage3d 与 .home-section 的注释）；
+     · three 走动态 import —— 文字与样式先到，3D 在空闲时再进来，
+       所以「有没有 3D」都不影响首屏可读性与响应速度；
+     · 没有 WebGL / 动效总开关 paused / 窄屏 → 直接不加载，返回空层。
+     想整体关掉：enabled: false（three 那个 chunk 连请求都不会发）。 */
+  stage3d: {
+    enabled: true,
+    grid: 26, // 点阵边长（粒子数 = grid²）：26 → 676 个粒子组成的光隧道
+    span: 44, // 点阵在世界坐标里的横向铺开宽度
+    depth: 92, // 纵深（z 轴长度），越大越像「隧道」
+    pixelRatio: 1.5, // DPR 上限：2 会让中低端笔记本掉帧，1.5 是清晰 / 帧率的折中
+    cameraZ: 16, // 起始镜头距离
+    travel: 34, // 从首屏滚到底部镜头推进的距离（越大越像「穿越」而不是平移）
+    tilt: 0.16, // 滚动中段镜头绕 X 轴的俯仰（弧度）
+    spin: 0.24, // 整段滚动里点阵的自转量（弧度）
+    introMs: 1500, // 开场：粒子从散开的球壳汇聚成点阵
+    opacityLight: 0.4, // 浅色主题的整体不透明度（白底上要克制，可读性优先）
+    opacityDark: 0.58, // 深色主题（黑底可以更亮、更「赛博」）
+    ring: true, // 是否叠加线框圆环（星门本体）
+  },
+
+  /* ---------------- 滚动镜头（GSAP ScrollTrigger · 无缝衔接） ----------------
+     见 src/components/CinemaScroll.tsx。把「首屏 → 第二屏」变成一次镜头推近：
+     · pin + scrub：把 Hero 钉住一段滚动距离，期间内容沿 Z 轴推近、第二屏从
+       远处淡入就位 —— 是「被镜头带进去」，而不是「整块上移」；
+     · 与 Lenis 不冲突：Lenis 改的是真实滚动位置，ScrollTrigger 直接读 window；
+       pin 会插入占位符（spacer），Lenis 靠自身 ResizeObserver 跟随高度，
+       切页 / 字体 / 图片就位后我们再主动 ScrollTrigger.refresh() 一次。
+     想整体关掉：enabled: false（首屏退回普通滚动，也不加载 gsap）。 */
+  cinema: {
+    enabled: true,
+    pinScreens: 1.15, // Hero 钉住多少屏的滚动距离（1.15 = 一屏多一点）
+    zoom: 1.34, // 钉住期间 Hero 的推近倍率（1 = 不推近；1.3~1.5 最像镜头）
+    lift: -0.16, // 推近时 Hero 的纵向漂移（占视口高度的比例，负值 = 上飘）
+    fade: true, // 末段把 Hero 淡出，交给第二屏
+    titleDepth: 88, // 大标题在 Z 轴上的额外分离量（px）：越大越像 3D 排字
+  },
+
+  /* ---------------- 微音效（Web Audio API · 不需要任何音频文件） ----------------
+     见 src/lib/sound.ts：全部用振荡器现场合成（0 请求、0 版权风险），
+     音色是极短的「像素 / 科技」气泡音。右上角有全局开关
+     （src/components/SoundToggle.tsx），默认关 —— 浏览器要求用户手势之后
+     才能出声，而且一进站就响对访客很不礼貌。 */
+  sound: {
+    enabled: true, // 站点是否具备发声能力（false = 连开关都不显示）
+    defaultOn: false, // 首次访问的默认状态（点一下开关才开）
+    volume: 0.16, // 主音量（0~1）：微音效要「听得到但不打扰」
+    hover: true, // 悬停按钮 / 链接的轻响
+    click: true, // 点击（含菜单展开、切页）的确认音
+    hz: { hover: 1180, click: 660, open: 880, close: 520, toggle: 1320 }, // 各事件的基频
   },
 
   /* ---------------- 悬浮音乐播放器 ---------------- */

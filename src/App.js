@@ -18,8 +18,10 @@ import {
 import ScrollToTop from "./components/ScrollToTop";
 import MusicPlayer from "./components/MusicPlayer";
 import SmoothScroll from "./components/SmoothScroll";
+import Stage3D from "./components/Stage3D";
+import SoundBridge from "./components/SoundBridge";
 import CustomCursor from "./components/CustomCursor";
-import { PageTransition, RouteCurtain } from "./components/PageTransition";
+import { PageTransition } from "./components/PageTransition";
 import { ThemeProvider } from "./theme/ThemeContext";
 import "./style.css";
 import "./App.css";
@@ -27,73 +29,86 @@ import "./App.css";
    否则它的 body 白底会把换肤变量盖掉，详见 index.js 顶部注释）。 */
 
 /**
- * 路由层（无缝切页）
+ * 路由层
  * ==========================================================================
  * 必须在 <Router> 内部才拿得到 useLocation。
  *
- * 切页由三件事拼成，顺序是「旧页退场 → 遮罩扫过 → 新页就位」：
- *   1) key={location.pathname}：路由一变，React 换掉整棵子树；
- *   2) AnimatePresence：会先留住旧页播完 exit（0.26s 淡出 + 轻微上移），
- *      再挂载新页 —— exitBeforeEnter 保证两页不同屏叠加
- *      （v6 的属性名，升到 framer-motion v7 后要改成 mode="wait"）；
- *      首次进入用 initial={false}：首屏已经有 LoadingScreen 负责入场，不重复播；
- *   3) RouteCurtain：一块全屏遮罩从下往上扫过，新页正好在「盖住」的那段时间挂载。
+ * ⚠️ 顶部导航**不再换路由**：点「作品 / 关于 / 经历 / 联系」都是同一页里的平滑
+ *    滚动（唯一来源是 src/lib/navigation.ts，调用方是 Header.tsx）。
+ *    首页本身就把这几块渲染出来了（Home.js 里 <Projects embedded /> 等），
+ *    所以点击不需要卸载任何子树 —— 滚动位置、入场动画、Canvas 状态全部保住。
+ *    这里保留路由只是为了两件事：
+ *      1) 深链入口：直接打开 /about、/project、/resume、/contact 也能用；
+ *      2) 站内若还有指向别的路径的链接时能正常落地。
  *
- * 三个页面之外的常驻部件（Header / ScrollToTop / MusicPlayer / Footer / 光标）
+ * 因此这里只做「旧页退场 → 新页入场」两件事：
+ *   1) key={location.pathname}：路由一变，React 换掉整棵子树；
+ *   2) AnimatePresence：先留住旧页播完 exit（0.26s 淡出 + 轻微上移）再挂新页
+ *      —— exitBeforeEnter 保证两页不同屏叠加（v6 的属性名，升到 framer-motion
+ *      v7 后要改成 mode="wait"）；首次进入用 initial={false}，首屏已经有
+ *      LoadingScreen 负责入场，不重复播。
+ *
+ * ⚠️ 原来的 RouteCurtain（全屏遮罩自下往上扫过一次）已经**删除**：
+ *    它盖着内容晃一下却什么也没推动，正是「点导航只有一条横线划过、页面其实
+ *    没动」的观感来源。切页靠上面两件事就够了，不需要幕布。
+ *
+ * 页面之外的常驻部件（Header / ScrollToTop / MusicPlayer / Footer / 光标）
  * 都留在 AnimatePresence 外面：切路由时它们不卸载，音乐连续、导航不闪。
+ *
+ * ready（= 首屏遮罩已经退场）会一路传给各页，供首屏的入场动效使用：
+ * <Reveal start={ready}> / <SplitText start={ready}>。
+ * 原因：路由内容在 t=0 就挂载了，而 LoadingScreen 要 2s + 0.8s 才上滑离开 ——
+ * 不等它退场就播，入场动画全在纯黑遮罩后面放完，用户看到的是「页面本来就这么静」。
  */
-function AppRoutes() {
+function AppRoutes({ ready = true }) {
   const location = useLocation();
 
   return (
-    <>
-      <RouteCurtain />
-      <AnimatePresence exitBeforeEnter initial={false}>
-        <Routes location={location} key={location.pathname}>
-          <Route
-            path="/"
-            element={
-              <PageTransition>
-                <Home />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/about"
-            element={
-              <PageTransition>
-                <About />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/project"
-            element={
-              <PageTransition>
-                <Projects />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/resume"
-            element={
-              <PageTransition>
-                <Resume />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/contact"
-            element={
-              <PageTransition>
-                <Contact />
-              </PageTransition>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AnimatePresence>
-    </>
+    <AnimatePresence exitBeforeEnter initial={false}>
+      <Routes location={location} key={location.pathname}>
+        <Route
+          path="/"
+          element={
+            <PageTransition>
+              <Home ready={ready} />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <PageTransition>
+              <About ready={ready} />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/project"
+          element={
+            <PageTransition>
+              <Projects ready={ready} />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/resume"
+          element={
+            <PageTransition>
+              <Resume ready={ready} />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <PageTransition>
+              <Contact ready={ready} />
+            </PageTransition>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 
@@ -115,12 +130,21 @@ function App() {
         <SmoothScroll enabled={!load} />
         <CustomCursor />
         <div className="App" id={load ? "no-scroll" : "scroll"}>
+          {/* 3D 全屏背景：必须排在所有内容之前。
+              它和正文里的定位元素同为 z-index:0，靠 DOM 顺序决定谁在上面 ——
+              放前面 = 永远压在正文之下（层叠细节见 src/style.css 的 .stage3d）。
+              enabled={!load}：首屏遮罩还在时只预热 three 的 chunk，不建场景，
+              遮罩一上滑离场，粒子汇聚正好开演。 */}
+          <Stage3D enabled={!load} />
           <Header />
           <ScrollToTop />
+          {/* 微音效桥：不产生 DOM，只做全站事件委托（悬停 / 点击 / 切页） */}
+          <SoundBridge />
           {/* 悬浮音乐播放器挂在 Routes 之外：切换路由时组件不卸载，音乐保持连续播放。
               主题切换只改 CSS 变量，播放器不会重挂载（播放进度不受影响）。 */}
           <MusicPlayer />
-          <AppRoutes />
+          {/* ready={!load}：首屏遮罩退场后，各页首屏的入场动效才真正开演 */}
+          <AppRoutes ready={!load} />
           <Footer />
         </div>
       </Router>

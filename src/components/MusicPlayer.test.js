@@ -214,8 +214,8 @@ describe("MusicPlayer", () => {
     expect(screen.queryByText("重试")).not.toBeInTheDocument();
     expect(screen.getByText(`${PLAYLISTS["netease-hot"].length} 首`)).toBeInTheDocument();
 
-    // 弹层收起（options 不再存在）、焦点回到触发按钮上
-    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    // 弹层收起（退场动画播完后 options 才从 DOM 摘掉）、焦点回到触发按钮上
+    await waitFor(() => expect(screen.queryAllByRole("option")).toHaveLength(0));
     expect(document.activeElement).toBe(trigger);
     expect(trigger).toHaveTextContent("热歌榜");
   });
@@ -230,20 +230,21 @@ describe("MusicPlayer", () => {
     fireEvent.click(trigger);
     expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
     fireEvent.mouseDown(document.body);
-    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    // 收起是「退场动画 + 摘节点」两步（AnimatePresence），所以等它摘掉再断言
+    await waitFor(() => expect(screen.queryAllByRole("option")).toHaveLength(0));
 
     // ② Esc（全局监听）：关闭并把焦点还给触发按钮
     fireEvent.click(trigger);
     expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    await waitFor(() => expect(screen.queryAllByRole("option")).toHaveLength(0));
     expect(document.activeElement).toBe(trigger);
 
     // ③ 折叠面板：不能留一块浮在空中的列表
     fireEvent.click(trigger);
     expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByLabelText("折叠播放器"));
-    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    await waitFor(() => expect(screen.queryAllByRole("option")).toHaveLength(0));
   });
 
   it("弹层键盘导航：↑↓ 环绕移动焦点、Enter 选中当前项", async () => {
@@ -269,9 +270,9 @@ describe("MusicPlayer", () => {
     fireEvent.keyDown(listbox, { key: "Home" });
     expect(document.activeElement).toBe(options[0]);
 
-    // Enter 走原生 click，选中后弹层收起
+    // Enter 走原生 click，选中后弹层收起（等退场动画把节点摘掉）
     fireEvent.click(document.activeElement);
-    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    await waitFor(() => expect(screen.queryAllByRole("option")).toHaveLength(0));
   });
 
   it("解析服务不可用时给出错误提示与重试入口", async () => {
@@ -681,7 +682,7 @@ describe("MusicPlayer 样式契约", () => {
     expect(rule(".mp-menu-item.is-active {")).toContain("var(--accent-contrast)");
   });
 
-  it("控制条：flex + center + gap 8px，主按钮实心，进度条是 2px 细线 + 8px 圆点", () => {
+  it("控制条：flex + center + gap 8px，主按钮实心（--mp-solid-*），进度条是 2px 细线 + 8px 圆点", () => {
     const buttons = rule(".mp-buttons {");
     expect(buttons).toContain("display: flex");
     expect(buttons).toContain("align-items: center");
@@ -690,8 +691,12 @@ describe("MusicPlayer 样式契约", () => {
 
     const main = rule(".mp-btn-main {");
     expect(main).toContain("width: 36px");
-    expect(main).toContain("background: var(--accent)");
-    expect(main).toContain("color: var(--accent-contrast)");
+    /* 主播放键用「实心控件」令牌，不能用 --accent：深色主题里 --accent 是纯白，
+       那会在黑面板上留一块白饼（观感就是「这个播放器没做深色版」）。
+       --mp-solid-* 把两套主题分开：浅色 = 黑底白图标，深色 = 深底亮图标 + 细描边。 */
+    expect(main).toContain("background: var(--mp-solid-bg)");
+    expect(main).toContain("color: var(--mp-solid-fg)");
+    expect(main).not.toContain("var(--accent)");
 
     expect(rule(".mp-range::-webkit-slider-runnable-track {")).toContain("height: 2px");
     expect(rule(".mp-range::-webkit-slider-thumb {")).toContain("width: 8px");

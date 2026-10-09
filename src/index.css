@@ -86,7 +86,7 @@ html.theme-switching body *::after {
 }
 
 /* --------------------------------------------------------------------------
-   站内「装饰性动效」总开关（--motion-play-state）
+   站内「装饰性动效」总开关（--motion-play-state）· 现在只管切页与光标
    --------------------------------------------------------------------------
    背景（实测，勿删）：本机 Windows 的「动画效果」处于关闭状态
    （SPI_GETCLIENTAREAANIMATION = False、注册表 MinAnimate = 0），
@@ -100,13 +100,20 @@ html.theme-switching body *::after {
    所以把「装饰性动效」的最终裁决权收到站点自己手里：
 
      --motion-play-state: running  → 常开（当前选择：画面要会动）
-     --motion-play-state: paused   → 跟随系统，把下面那段注释打开即可
+     --motion-play-state: paused   → 冻结，跟随系统，把下面那段注释打开即可
 
-   注意三条边界：
-     · 只影响「装饰性动效」（唱片自转 / 唱针 / 光标小人 / 平滑滚动 / 入场视差 / 切页遮罩），
-       不影响播放逻辑与信息表达；
-     · 置为 paused 时：入场动画直接以「终止状态」呈现（内容一帧都不少）、
-       视差与切换遮罩完全不出现 —— 关动效 ≠ 丢内容；
+   ⚠️ 修复「首页空白 / 点导航没反应」之后，这个变量**只剩两类消费者**：
+     · 切页外壳 PageTransition —— paused 时退化成普通 div（内容一帧不少）；
+     · CSS 里的待机动画 —— 光标小人（cursorStyles.ts）、唱机（style.css）。
+
+   Reveal / Parallax / SplitText / SkillSection / CinemaScroll / Stage3D /
+   SmoothScroll / 顶部导航 都已经**不再读它**：
+   被它拦住时元素会永久停在 opacity: 0、滚动联动也不发生 ——
+   那正是「画面看起来整块坏掉」的根因，别再往这些地方加回来。
+
+   三条边界（仍然有效）：
+     · 只影响「装饰性动效」，不影响播放逻辑与信息表达；
+     · 置为 paused 时：入场动画直接以「终止状态」呈现（内容一帧都不少）；
      · 换肤过渡（html.theme-switching）仍然尊重系统设置 ——
        它属于辅助性淡入淡出，关掉不丢信息，见上面那段 @media。
    -------------------------------------------------------------------------- */
@@ -244,9 +251,10 @@ html.lenis {
    这里只放「跨页面复用」的几条静态样式，组件级动画由组件自己负责：
      · Reveal      —— src/components/Reveal.tsx   （滚动入场，样式走内联）
      · Parallax    —— src/components/Parallax.tsx （视差层）
-     · PageTransition / RouteCurtain —— src/components/PageTransition.tsx
+     · PageTransition —— src/components/PageTransition.tsx（切页进退场；遮罩已删）
      · 自定义光标   —— src/components/cursorStyles.ts（运行时注入，不在这里）
-   装饰性动效的播放 / 暂停统一读 --motion-play-state（见上面那段说明）。
+   顶部导航点击走的是**同页平滑滚动**（src/lib/navigation.ts）：不换路由、
+   不扫遮罩 —— 换路由会卸载整棵子树，滚动位置与入场动画全部重来。
    ========================================================================== */
 
 /* 入场元素的合成层提示：避免首帧因为「刚变成 transform 元素」而闪一下。
@@ -271,17 +279,48 @@ html.lenis {
   display: block;
 }
 
-/* 全屏遮罩平移：路由切换时从下往上扫过一次
-   · pointer-events: none —— 绝不拦截点击（哪怕正在动画）
-   · 用 createPortal 挂在 body 上，所以这里只依赖 fixed 定位
-   · 颜色取 --overlay（与 LoadingScreen 同一块底色），扫过时没有白闪 */
-.route-curtain {
+/* ⚠️ 这里原本有一条 .route-curtain（全屏遮罩自下往上扫过一次）。
+   它已经被删除：顶部导航是同页平滑滚动，遮罩扫过既没滚动也没换页，
+   只是盖着内容晃一下 —— 那正是「点了导航只有一条横线划过」的观感来源。
+   切页观感交给 PageTransition + <AnimatePresence exitBeforeEnter> 就够了。 */
+
+/* ==========================================================================
+   3D 全屏背景（Three.js · src/components/Stage3D.js）
+   --------------------------------------------------------------------------
+   层叠顺序是这一块**唯一**的坑，别再凭直觉改：
+     · 不能用 z-index: -1（负层级）。它会掉到 <body> 的背景色之下被整个盖住 ——
+       .home-section 的注释里已经踩过同款坑：当时整块首页「消失」，只剩 fixed
+       的 Header / 播放器 / 光标能看见；
+     · 正确的是 z-index: 0 + **DOM 顺序**：这一层在 .App 里排在所有内容之前，
+       而正文里的定位元素（.home-section 也是 z-index: 0）都排在它之后 ——
+       同层级、后画的在上面，于是正文永远稳稳压在 3D 之上；
+     · pointer-events: none：3D 层绝不参与命中测试（点击 / 悬停 / 选中文字都不受影响）；
+     · canvas 由 three 自己插进来（动态 import 之后），这里只负责把它撑满。
+   ========================================================================== */
+.stage3d {
   position: fixed;
   inset: 0;
-  z-index: 9000; /* 低于 Header 的层级之上、低于自定义光标（2147483647） */
+  z-index: 0;
+  overflow: hidden;
   pointer-events: none;
-  background: var(--overlay);
-  will-change: transform;
-  /* 前缘一条 2px 发丝线，让「扫过」这件事有明确的边界感 */
-  border-top: 2px solid var(--accent-line);
+}
+
+.stage3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ==========================================================================
+   滚动镜头外壳（GSAP ScrollTrigger · src/components/CinemaScroll.tsx）
+   --------------------------------------------------------------------------
+   它本身**不做任何视觉**，只提供两个东西：
+     1) 一个稳定的父节点（ScrollTrigger 的 pin 会往里插入占位符 .pin-spacer，
+        父节点有布局上下文才不会把 Bootstrap 栅格带歪）；
+     2) 一个「没有 transform」的祖先 —— 祖先一旦带 transform，
+        position: fixed 的 pin 就会相对祖先定位而不是视口，钉住会跟着页面跑
+        （所以这里刻意什么都不加：不加 transform / filter / will-change）。
+   ========================================================================== */
+.cinema-scroll {
+  position: relative;
 }

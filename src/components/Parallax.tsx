@@ -1,7 +1,6 @@
 import React, { useRef } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { cn } from "../lib/utils";
-import useMotionPlayState from "../lib/useMotionPlayState";
 
 /**
  * 视差层（Parallax）
@@ -14,7 +13,11 @@ import useMotionPlayState from "../lib/useMotionPlayState";
  *   1 = 底边离开视口），再用 useTransform 映射成垂直位移，与页面长短无关；
  * · 位移经过一条弹簧（useSpring）—— 滚轮是一格一格跳的，弹簧负责把
  *   「跳」变成「滑」；Lenis 已经平滑过一层，这里补的是重量感；
- * · 总开关 --motion-play-state 为 paused 时不挂 y（只剩静态元素）；
+ * · 没有任何「总开关」会拦着它：视差是滚动驱动的，一旦被拦住，滚起来就只剩
+ *   死板的平铺（这正是之前「滚动没有层次」的元凶）。
+ *   刻意不跟系统的 prefers-reduced-motion：站长这台 Windows 的「动画效果」是关的
+ *   （SPI_GETCLIENTAREAANIMATION = False），Chrome 因此一直上报 reduce ——
+ *   跟随系统就等于「视差永远不生效」。想跟随系统只改 src/index.css 里那一个变量。
  * · 位移只改 transform（合成层），不会引起重排，滚动时是 60fps 的活儿。
  */
 
@@ -28,7 +31,6 @@ type ParallaxProps = {
 
 function Parallax({ children, className, speed = 24, style }: ParallaxProps) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const playing = useMotionPlayState() === "running";
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -44,9 +46,9 @@ function Parallax({ children, className, speed = 24, style }: ParallaxProps) {
   return (
     <motion.div
       ref={ref}
-      data-parallax={playing ? "playing" : "paused"}
+      data-parallax="active"
       className={cn("parallax-layer", className)}
-      style={playing ? { ...style, y } : style}
+      style={{ ...style, y }}
     >
       {children}
     </motion.div>

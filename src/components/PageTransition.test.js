@@ -1,20 +1,16 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { act } from "react-dom/test-utils";
-import { MemoryRouter, useNavigate } from "react-router-dom";
-import { PageTransition, RouteCurtain } from "./PageTransition";
+import { render, screen, waitFor } from "@testing-library/react";
+import { PageTransition } from "./PageTransition";
+import * as PageTransitionModule from "./PageTransition";
 
 /**
- * 无缝切页测试（jsdom）
+ * 切页外壳（PageTransition）测试（jsdom）
  * ------------------------------------------------------------------
- * 真实的转场由三个东西配合（见 App.js）：AnimatePresence 留住旧页播完 exit、
- * key={pathname} 换掉子树、RouteCurtain 在「盖住」的空档里换页。
- * AnimatePresence 与 exit 时长依赖渲染帧，这里覆盖确定性的部分：
- *   1) PageTransition 播放态是 motion.main + data-page-transition="playing"，
- *      并透传额外类名；
- *   2) RouteCurtain 首次进入不扫（首屏入场归 LoadingScreen），路由变化才扫一次，
- *      遮罩挂在 body 上（portal）、aria-hidden、不吃点击；
- *   3) 总开关为 paused 时：PageTransition 退化成普通 div、遮罩完全不出现。
+ * 真实转场依赖渲染帧与 AnimatePresence 的排期，这里只覆盖确定性的部分：
+ *   1) 播放态是 motion.main + data-page-transition="playing"，并透传额外类名；
+ *   2) 总开关（--motion-play-state）为 paused 时退化成普通 div —— 内容一帧都不少；
+ *   3) RouteCurtain **已经被删除**：导航点击是同页平滑滚动，不再有全屏遮罩扫过，
+ *      那块「盖着内容晃一下却什么也没推动」的幕布正是「点了没反应」的观感来源。
  */
 
 /** 与 SkillSection.test.js 同款：包一层 getComputedStyle，只改写总开关的读数 */
@@ -39,25 +35,6 @@ const mockMotionPlayState = (value) => {
     window.getComputedStyle = original;
   };
 };
-
-/** 站内导航按钮（RouteCurtain 靠 pathname 变化决定要不要扫一次） */
-function NavButton({ to }) {
-  const navigate = useNavigate();
-  return <button onClick={() => navigate(to)}>去 {to}</button>;
-}
-
-/** 路由层最小复刻：遮罩 + 跳转按钮 */
-function renderRoutes(initialPath = "/") {
-  return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <RouteCurtain />
-      <NavButton to="/about" />
-    </MemoryRouter>
-  );
-}
-
-const curtainInBody = () =>
-  document.body.querySelector("[data-route-curtain]");
 
 describe("PageTransition", () => {
   test("播放态：motion.main 外壳 + playing 标记，并透传额外类名", () => {
@@ -95,46 +72,18 @@ describe("PageTransition", () => {
   });
 });
 
-describe("RouteCurtain", () => {
-  test("首次进入不扫：首屏入场交给 LoadingScreen", async () => {
-    renderRoutes("/");
+describe("RouteCurtain（已删除）", () => {
+  test("模块里不再导出 RouteCurtain，页面里也不会出现遮罩节点", () => {
+    expect(PageTransitionModule.RouteCurtain).toBeUndefined();
+    expect(PageTransitionModule.default).toBe(PageTransition);
 
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(curtainInBody()).toBeNull();
-  });
-
-  test("路由变化时扫一次：遮罩挂在 body 上、aria-hidden、不吃点击", async () => {
-    renderRoutes("/");
-
-    fireEvent.click(screen.getByText("去 /about"));
-
-    await waitFor(() => expect(curtainInBody()).not.toBeNull());
-
-    const curtain = curtainInBody();
-    expect(curtain.className).toContain("route-curtain");
-    expect(curtain).toHaveAttribute("aria-hidden", "true");
-    // createPortal 到 body：不会被页面里的 transform / filter 影响
-    expect(curtain.parentElement).toBe(document.body);
-  });
-
-  test("总开关为 paused：不出现遮罩（关动效 = 直接切页，一帧都不耽搁）", async () => {
-    const restore = mockMotionPlayState("paused");
-    renderRoutes("/");
-
-    await waitFor(() =>
-      expect(screen.getByText("去 /about")).toBeInTheDocument()
+    render(
+      <PageTransition>
+        <span>页面内容</span>
+      </PageTransition>
     );
 
-    await act(async () => {
-      fireEvent.click(screen.getByText("去 /about"));
-      await Promise.resolve();
-    });
-
-    expect(curtainInBody()).toBeNull();
-
-    restore();
+    expect(document.querySelector("[data-route-curtain]")).toBeNull();
+    expect(document.querySelector(".route-curtain")).toBeNull();
   });
 });
